@@ -1230,6 +1230,15 @@ function App(){
 
   useEffect(function(){
     if(!fbReady||!user)return;
+    // Update timezone every time app opens (catches travel/location changes)
+    try{
+      var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+      var mm=null;
+      for(var mi=0;mi<MEMBERS.length;mi++){if(MEMBERS[mi].name.toLowerCase()===user.toLowerCase()){mm=MEMBERS[mi];break;}}
+      if(mm&&tz){
+        gFS().setDoc(gFS().doc(gDB(),'profiles',String(mm.id)),{timezone:tz},{merge:true});
+      }
+    }catch(e){}
     var u1=fbSub(function(t){
       setTasks(t);
       setLoaded(true);
@@ -1249,21 +1258,7 @@ function App(){
   },[fbReady,user]);
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
-  function login(n){
-    lsSet('jc_user',n);
-    setUser(n);
-    var m=null;
-    for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===n.toLowerCase()){m=MEMBERS[i];break;}}
-    if(m){
-      try{
-        var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
-        if(tz){
-          var fs=gFS();
-          fs.setDoc(fs.doc(gDB(),'profiles',String(m.id)),{timezone:tz},{merge:true});
-        }
-      }catch(e){}
-    }
-  }
+  function login(n){lsSet('jc_user',n);setUser(n);}
   function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
   function saveTask(task){
