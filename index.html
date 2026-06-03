@@ -260,12 +260,12 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 <!-- Firebase -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc,getDocs}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 var app=initializeApp({apiKey:"AIzaSyC8mMdNTS0UJrh4_81Ni0aW2QpPYQiOtoc",authDomain:"jellycircleteam.firebaseapp.com",projectId:"jellycircleteam",storageBucket:"jellycircleteam.firebasestorage.app",messagingSenderId:"835206774530",appId:"1:835206774530:web:8021fc3a3edc9d1c318c1b"});
 var db=getFirestore(app);
 window.__DB=db;
-window.__FS={collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc};
+window.__FS={collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc,getDocs};
 
 window.__READY=true;
 window.dispatchEvent(new Event('fb-ready'));
@@ -342,6 +342,24 @@ function canEdit(user,task){
   if(task.createdBy&&task.createdBy===m.name)return true;
   return false;
 }
+function getTZInfo(tz){
+  if(!tz)return null;
+  try{
+    var now=new Date();
+    var time=now.toLocaleTimeString('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:true});
+    var city=tz.split('/').pop().replace(/_/g,' ');
+    var local=new Date(now.toLocaleString('en-US',{timeZone:tz}));
+    var utc=new Date(now.toLocaleString('en-US',{timeZone:'UTC'}));
+    var off=Math.round((local-utc)/60000);
+    var sign=off>=0?'+':'-';
+    var a=Math.abs(off);
+    var offset='GMT'+sign+Math.floor(a/60)+(a%60?':'+String(a%60).padStart(2,'0'):'');
+    var h=parseInt(now.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
+    var emoji=h>=20||h<6?'🌙':h<9?'🌅':h>=17?'🌆':'☀️';
+    return {time:time,city:city,offset:offset,emoji:emoji};
+  }catch(e){return null;}
+}
+
 function wkRange(offset){
   var now=new Date(),day=now.getDay(),diff=now.getDate()-day+(day===0?-6:1);
   var mon=new Date(now);mon.setDate(diff+offset*7);mon.setHours(0,0,0,0);
@@ -879,8 +897,13 @@ function Tasks(p){
 
 // ── Team ──────────────────────────────────────────────────────────────────────
 function Team(p){
-  var tasks=p.tasks,pics=p.pics||{},user=p.user||'';
+  var tasks=p.tasks,pics=p.pics||{},user=p.user||'',profiles=p.profiles||{};
   var isAdmin=false;for(var ai=0;ai<ADMINS.length;ai++){if(ADMINS[ai]===user.toLowerCase()){isAdmin=true;break;}}
+  var sClock=useState(0),tick=sClock[1];
+  useEffect(function(){
+    var iv=setInterval(function(){tick(function(n){return n+1;});},60000);
+    return function(){clearInterval(iv);};
+  },[]);
   return h('div',{className:'page fade-up'},
     h('div',{style:{marginBottom:24}},h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Roster'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Team ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+MEMBERS.length+']'))),
     ['Business','Tech','Both'].map(function(team){
@@ -904,10 +927,32 @@ function Team(p){
             var pct=mt.length?Math.round(dn/mt.length*100):0;
             var isMe=m.name.toLowerCase()===user.toLowerCase();
             return h('div',{key:m.id,className:'team-card',style:{borderLeft:'3px solid '+m.color}},
-              h('div',{style:{display:'flex',gap:12,alignItems:'center',marginBottom:14}},
+              h('div',{style:{display:'flex',gap:12,alignItems:'center',marginBottom:10}},
                 h(Av,{m:m,sz:44,pics:pics,editable:isMe||isAdmin}),
-                h('div',null,h('div',{style:{fontWeight:700,fontSize:15,color:'#F0EDE8'}},m.name),h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.06em'}},m.role))
+                h('div',{style:{flex:1,minWidth:0}},
+                  h('div',{style:{fontWeight:700,fontSize:15,color:'#F0EDE8'}},m.name),
+                  h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.06em'}},m.role)
+                )
               ),
+              (function(){
+                var prof=profiles[String(m.id)];
+                var tz=prof&&prof.timezone?prof.timezone:null;
+                var info=tz?getTZInfo(tz):null;
+                if(!info)return h('div',{style:{padding:'6px 10px',marginBottom:10,border:'1px solid #1B2030'}},
+                  h('span',{className:'mono',style:{fontSize:9,color:'#4A5568'}},'// not logged in yet')
+                );
+                return h('div',{style:{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',marginBottom:10,background:'rgba(27,110,60,.08)',border:'1px solid #1B6E3C'}},
+                  h('span',{style:{fontSize:16}},info.emoji),
+                  h('div',null,
+                    h('div',{className:'mono',style:{fontSize:14,fontWeight:700,color:'#FFE600'}},info.time),
+                    h('div',{style:{display:'flex',gap:5,marginTop:2}},
+                      h('span',{className:'mono',style:{fontSize:9,color:'#F0EDE8'}},info.city),
+                      h('span',{className:'mono',style:{fontSize:9,color:'#4A5568'}},'·'),
+                      h('span',{className:'mono',style:{fontSize:9,color:'#2EA55A'}},info.offset)
+                    )
+                  )
+                );
+              })(),
 
               h('div',{style:{display:'flex',gap:2,marginBottom:12}},
                 [[td,'O','#9CA3AF'],[ip,'~','#FFE600'],[dn,'*','#2EA55A']].map(function(a,i){return h('div',{key:i,style:{flex:1,background:a[2]+'12',border:'1px solid '+a[2]+'33',padding:'5px',textAlign:'center'}},h('div',{className:'mono',style:{fontSize:16,fontWeight:700,color:a[2]}},a[0]),h('div',{style:{fontSize:9,color:a[2],opacity:.7}},a[1]));}),
@@ -1168,6 +1213,7 @@ function App(){
   var s2=useState([]),tasks=s2[0],setTasks=s2[1];
   var s3=useState({}),pics=s3[0],setPics=s3[1];
   var s10=useState([]),docs=s10[0],setDocs=s10[1];
+  var s11=useState({}),profiles=s11[0],setProfiles=s11[1];
   var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
   var s5=useState(null),modal=s5[0],setModal=s5[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
@@ -1184,14 +1230,40 @@ function App(){
 
   useEffect(function(){
     if(!fbReady||!user)return;
-    var u1=fbSub(function(t){setTasks(t);setLoaded(true);});
+    var u1=fbSub(function(t){
+      setTasks(t);
+      setLoaded(true);
+      // Fetch profiles once after tasks load (non-blocking)
+      try{
+        var fs=gFS();
+        fs.getDocs(fs.collection(gDB(),'profiles')).then(function(snap){
+          var p={};
+          snap.docs.forEach(function(d){p[String(d.id)]=d.data();});
+          setProfiles(p);
+        }).catch(function(){});
+      }catch(e){}
+    });
     var u2=fbSubPics(function(pp){setPics(pp);});
     var u3=fbSubDocs(function(d){setDocs(d);});
     return function(){u1();u2();u3();};
   },[fbReady,user]);
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
-  function login(n){lsSet('jc_user',n);setUser(n);}
+  function login(n){
+    lsSet('jc_user',n);
+    setUser(n);
+    var m=null;
+    for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===n.toLowerCase()){m=MEMBERS[i];break;}}
+    if(m){
+      try{
+        var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+        if(tz){
+          var fs=gFS();
+          fs.setDoc(fs.doc(gDB(),'profiles',String(m.id)),{timezone:tz},{merge:true});
+        }
+      }catch(e){}
+    }
+  }
   function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
   function saveTask(task){
@@ -1221,7 +1293,7 @@ function App(){
       h('div',{className:'main-scroll'},
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
-        page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user}),
+        page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,profiles:profiles}),
         page==='docs'&&h(Docs,{docs:docs,user:user})
       )
     ),
