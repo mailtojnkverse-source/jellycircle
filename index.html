@@ -77,8 +77,8 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 .cdot{display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;background:#FF3D8B;color:#0D1117;font-size:9px;font-weight:700;font-family:'Space Mono',monospace;min-width:16px;height:16px;padding:0 3px;-webkit-animation:pdot 2s ease infinite;animation:pdot 2s ease infinite}
 
 /* Modal */
-.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.78);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:50;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:16px}
-.modal{background:#161B22;border:2px solid #1B6E3C;width:100%;max-width:560px;height:auto;max-height:85vh;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-box-sizing:border-box;box-sizing:border-box}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:50;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:20px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal{background:#161B22;border:2px solid #1B6E3C;width:100%;max-width:560px;max-height:80vh;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-box-sizing:border-box;box-sizing:border-box;margin:auto}
 .modal-body{-webkit-flex:1;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 20px 20px}
 
 .modal-head{background:#1B6E3C;padding:10px 20px;display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center}
@@ -217,7 +217,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 
   /* Modal — full screen on mobile */
   .overlay{padding:0;-webkit-align-items:flex-end;align-items:flex-end}
-  .modal{width:100%;max-width:100%;max-height:92vh;border-radius:0;border-left:none;border-right:none;border-bottom:none;border-top:3px solid #FF3D8B;}
+  .modal{width:100%;max-width:100%;max-height:80vh;border-top:3px solid #FF3D8B;}
   .modal-body{padding:14px 14px 20px}
   .modal-footer{padding-top:12px;margin-top:14px}
 
