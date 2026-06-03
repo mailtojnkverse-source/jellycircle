@@ -342,37 +342,6 @@ function canEdit(user,task){
   if(task.createdBy&&task.createdBy===m.name)return true;
   return false;
 }
-function getTZInfo(timezone){
-  if(!timezone||timezone==='Unknown') return {time:'--:--',offset:'',city:'Unknown',emoji:'🌍'};
-  try{
-    // Get current time in that timezone
-    var now=new Date();
-    var timeStr=now.toLocaleTimeString('en-US',{timeZone:timezone,hour:'2-digit',minute:'2-digit',hour12:true});
-    // Get UTC offset
-    var offsetMin=-(new Date().getTimezoneOffset());
-    try{
-      var tzDate=new Date(now.toLocaleString('en-US',{timeZone:timezone}));
-      var utcDate=new Date(now.toLocaleString('en-US',{timeZone:'UTC'}));
-      offsetMin=Math.round((tzDate-utcDate)/60000);
-    }catch(e){}
-    var sign=offsetMin>=0?'+':'-';
-    var absMin=Math.abs(offsetMin);
-    var offsetStr='GMT'+sign+Math.floor(absMin/60)+(absMin%60>0?':'+String(absMin%60).padStart(2,'0'):'');
-    // Get city from timezone string (e.g. "America/New_York" -> "New York")
-    var parts=timezone.split('/');
-    var city=parts[parts.length-1].replace(/_/g,' ');
-    // Get hour to determine emoji
-    var hour=parseInt(now.toLocaleString('en-US',{timeZone:timezone,hour:'numeric',hour12:false}));
-    var emoji='☀️';
-    if(hour>=20||hour<6) emoji='🌙';
-    else if(hour<9) emoji='🌅';
-    else if(hour>=17) emoji='🌆';
-    return {time:timeStr,offset:offsetStr,city:city,emoji:emoji};
-  }catch(e){
-    return {time:'--:--',offset:'',city:timezone,emoji:'🌍'};
-  }
-}
-
 function wkRange(offset){
   var now=new Date(),day=now.getDay(),diff=now.getDate()-day+(day===0?-6:1);
   var mon=new Date(now);mon.setDate(diff+offset*7);mon.setHours(0,0,0,0);
@@ -448,27 +417,6 @@ function fbDelDoc(docId){
   var fs=gFS();
   return fs.deleteDoc(fs.doc(gDB(),'docs',docId));
 }
-function fbSubTZ(cb){
-  try{
-    var fs=gFS();
-    return fs.onSnapshot(fs.collection(gDB(),'timezones'),
-      function(snap){
-        var map={};
-        snap.docs.forEach(function(d){map[String(d.id)]=d.data();});
-        cb(map);
-      },
-      function(err){
-        console.error('TZ subscription error:',err);
-        cb({});
-      }
-    );
-  }catch(e){
-    console.error('fbSubTZ error:',e);
-    cb({});
-    return function(){};
-  }
-}
-
 function fbSubDocs(cb){
   var fs=gFS();
   var q=fs.query(fs.collection(gDB(),'docs'),fs.orderBy('createdAt','desc'));
@@ -931,14 +879,8 @@ function Tasks(p){
 
 // ── Team ──────────────────────────────────────────────────────────────────────
 function Team(p){
-  var tasks=p.tasks,pics=p.pics||{},user=p.user||'',tzMap=p.tzMap||{};
+  var tasks=p.tasks,pics=p.pics||{},user=p.user||'';
   var isAdmin=false;for(var ai=0;ai<ADMINS.length;ai++){if(ADMINS[ai]===user.toLowerCase()){isAdmin=true;break;}}
-  // Live clock — updates every minute
-  var sClock=useState(0),setClock=sClock[1];
-  useEffect(function(){
-    var interval=setInterval(function(){setClock(function(n){return n+1;});},30000);
-    return function(){clearInterval(interval);};
-  },[]);
   return h('div',{className:'page fade-up'},
     h('div',{style:{marginBottom:24}},h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Roster'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Team ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+MEMBERS.length+']'))),
     ['Business','Tech','Both'].map(function(team){
@@ -962,34 +904,11 @@ function Team(p){
             var pct=mt.length?Math.round(dn/mt.length*100):0;
             var isMe=m.name.toLowerCase()===user.toLowerCase();
             return h('div',{key:m.id,className:'team-card',style:{borderLeft:'3px solid '+m.color}},
-              h('div',{style:{display:'flex',gap:12,alignItems:'center',marginBottom:10}},
+              h('div',{style:{display:'flex',gap:12,alignItems:'center',marginBottom:14}},
                 h(Av,{m:m,sz:44,pics:pics,editable:isMe||isAdmin}),
-                h('div',{style:{flex:1,minWidth:0}},
-                  h('div',{style:{fontWeight:700,fontSize:15,color:'#F0EDE8'}},m.name),
-                  h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.06em'}},m.role)
-                )
+                h('div',null,h('div',{style:{fontWeight:700,fontSize:15,color:'#F0EDE8'}},m.name),h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.06em'}},m.role))
               ),
-              // Timezone display
-              (function(){
-                var tzData=tzMap[String(m.id)];
-                var tz=tzData?tzData.timezone:null;
-                var info=tz?getTZInfo(tz):null;
-                if(!info) return h('div',{style:{background:'rgba(27,110,60,.08)',border:'1px solid #1B6E3C',padding:'7px 10px',marginBottom:12,display:'flex',alignItems:'center',gap:8}},
-                  h('span',{style:{fontSize:14}},'🌍'),
-                  h('span',{className:'mono',style:{fontSize:10,color:'#4A5568'}},m.name+' hasn't logged in yet')
-                );
-                return h('div',{style:{background:'rgba(27,110,60,.08)',border:'1px solid #1B6E3C',padding:'8px 12px',marginBottom:12,display:'flex',alignItems:'center',gap:10}},
-                  h('span',{style:{fontSize:18,lineHeight:1}},info.emoji),
-                  h('div',null,
-                    h('div',{style:{fontSize:15,fontWeight:700,color:'#FFE600',fontFamily:'Space Mono,monospace',letterSpacing:'.02em'}},info.time),
-                    h('div',{style:{display:'flex',gap:6,alignItems:'center',marginTop:2}},
-                      h('span',{style:{fontSize:10,color:'#F0EDE8',fontFamily:'Space Mono,monospace'}},info.city),
-                      h('span',{style:{fontSize:10,color:'#4A5568',fontFamily:'Space Mono,monospace'}},'·'),
-                      h('span',{style:{fontSize:10,color:'#2EA55A',fontFamily:'Space Mono,monospace'}},info.offset)
-                    )
-                  )
-                );
-              })(),
+
               h('div',{style:{display:'flex',gap:2,marginBottom:12}},
                 [[td,'O','#9CA3AF'],[ip,'~','#FFE600'],[dn,'*','#2EA55A']].map(function(a,i){return h('div',{key:i,style:{flex:1,background:a[2]+'12',border:'1px solid '+a[2]+'33',padding:'5px',textAlign:'center'}},h('div',{className:'mono',style:{fontSize:16,fontWeight:700,color:a[2]}},a[0]),h('div',{style:{fontSize:9,color:a[2],opacity:.7}},a[1]));}),
                 od>0&&h('div',{style:{flex:1,background:'rgba(232,37,31,.1)',border:'1px solid rgba(232,37,31,.25)',padding:'5px',textAlign:'center'}},h('div',{className:'mono',style:{fontSize:16,fontWeight:700,color:'#E8251F'}},od),h('div',{style:{fontSize:9,color:'#E8251F',opacity:.7}},'OD'))
@@ -1249,7 +1168,6 @@ function App(){
   var s2=useState([]),tasks=s2[0],setTasks=s2[1];
   var s3=useState({}),pics=s3[0],setPics=s3[1];
   var s10=useState([]),docs=s10[0],setDocs=s10[1];
-  var s11=useState({}),tzMap=s11[0],setTzMap=s11[1];
   var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
   var s5=useState(null),modal=s5[0],setModal=s5[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
@@ -1269,30 +1187,11 @@ function App(){
     var u1=fbSub(function(t){setTasks(t);setLoaded(true);});
     var u2=fbSubPics(function(pp){setPics(pp);});
     var u3=fbSubDocs(function(d){setDocs(d);});
-    var u4=fbSubTZ(function(tz){setTzMap(tz);});
-    // Safety timeout — force load after 6 seconds no matter what
-    var timeout=setTimeout(function(){setLoaded(true);},6000);
-    return function(){u1();u2();u3();u4();clearTimeout(timeout);};
+    return function(){u1();u2();u3();};
   },[fbReady,user]);
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
-  function login(n){
-    lsSet('jc_user',n);
-    setUser(n);
-    // Save timezone info to Firebase
-    try{
-      var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'Unknown';
-      var fs=gFS();
-      var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===n.toLowerCase()){m=MEMBERS[i];break;}}
-      if(m){
-        fs.setDoc(fs.doc(gDB(),'timezones',String(m.id)),{
-          timezone:tz,
-          memberName:n,
-          updatedAt:Date.now()
-        });
-      }
-    }catch(e){console.error('tz save error',e);}
-  }
+  function login(n){lsSet('jc_user',n);setUser(n);}
   function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
   function saveTask(task){
@@ -1322,7 +1221,7 @@ function App(){
       h('div',{className:'main-scroll'},
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
-        page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,tzMap:tzMap}),
+        page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user}),
         page==='docs'&&h(Docs,{docs:docs,user:user})
       )
     ),
