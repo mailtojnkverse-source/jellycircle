@@ -811,7 +811,7 @@ function Tasks(p){
   var s5=useState('createdAt'),sortBy=s5[0],setSortBy=s5[1];
   var s6=useState(''),q=s6[0],setQ=s6[1];
   var s7=useState('All People'),mf=s7[0],setMf=s7[1];
-  /*// Drag state
+  // Drag state
   var sDrag=useState(null),dragId=sDrag[0],setDragId=sDrag[1];
   var sDragCol=useState(null),dragCol=sDragCol[0],setDragCol=sDragCol[1];
   var sOverCol=useState(null),overCol=sOverCol[0],setOverCol=sOverCol[1];
@@ -839,8 +839,8 @@ function Tasks(p){
 
     if(sortBy==='title')return a.title<b.title?-1:1;
     return b.createdAt-a.createdAt;
-  });*/
-  /*// ── Drag handlers ──────────────────────────────────────────────────────────
+  });
+  // ── Drag handlers ──────────────────────────────────────────────────────────
   function onDragStart(e, taskId, fromCol){
     setDragId(taskId); setDragCol(fromCol);
     dragRef.current=taskId;
@@ -1083,7 +1083,7 @@ function Tasks(p){
       })
     )
   );
-}*/
+}
 
 // ── Team ──────────────────────────────────────────────────────────────────────
 function Team(p){
