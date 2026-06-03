@@ -605,7 +605,7 @@ function Login(p){
 function TaskModal(p){
   var task=p.task,pics=p.pics||{},ce=p.canEdit!==false;
   var isNew=!task.id;
-  var s1=useState({title:task.title||'',desc:task.description||'',assignedTo:task.assignedTo||MEMBERS[0].id,team:task.team||'Business',priority:task.priority||'Medium',status:task.status||'To Do',deadline:task.deadline||'',comments:task.comments||[]});
+  var s1=useState({title:task.title||'',desc:task.description||'',assignedTo:task.assignedTo||'',team:task.team||'Business',priority:task.priority||'Medium',status:task.status||'To Do',deadline:task.deadline||'',comments:task.comments||[]});
   var form=s1[0],setForm=s1[1];
   var s2=useState(''),nc=s2[0],setNc=s2[1];
   var s3=useState((!task.id||canEdit(p.user,task))?'details':'comments'),tab=s3[0],setTab=s3[1];
