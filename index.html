@@ -120,6 +120,20 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 /* Toast */
 .toast{position:fixed;bottom:20px;right:20px;background:#FFE600;color:#0D1117;padding:11px 18px;font-size:12px;font-weight:700;z-index:200;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.05em;-webkit-animation:fadeUp .3s ease;animation:fadeUp .3s ease}
 
+/* Docs */
+.doc-card{background:#161B22;border:1px solid #1B6E3C;padding:16px;-webkit-transition:all .15s;transition:all .15s;cursor:pointer}
+.doc-card:hover{border-color:#FF3D8B;-webkit-transform:translateY(-1px);transform:translateY(-1px)}
+.doc-grid{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:2px}
+.doc-grid .doc-card{width:calc(33.333% - 2px);min-width:220px;-webkit-flex:1;flex:1}
+.upload-zone{border:2px dashed #1B6E3C;padding:32px;text-align:center;cursor:pointer;-webkit-transition:border-color .15s;transition:border-color .15s;background:rgba(27,110,60,.04)}
+.upload-zone:hover{border-color:#FFE600}
+.upload-zone.drag-over{border-color:#FF3D8B;background:rgba(255,61,139,.05)}
+.prog-bar{height:4px;background:#1B2030;margin-top:8px;overflow:hidden}
+.prog-bar-fill{height:100%;background:#FFE600;-webkit-transition:width .2s;transition:width .2s}
+@media(max-width:768px){
+  .doc-grid .doc-card{width:100%}
+}
+
 /* Two-col grid */
 .two-col{display:-webkit-flex;display:flex;gap:14px;margin-bottom:14px}
 .two-col > *{-webkit-flex:1;flex:1;min-width:0}
@@ -249,10 +263,14 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import{getStorage,ref,uploadBytesResumable,getDownloadURL,deleteObject}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 var app=initializeApp({apiKey:"AIzaSyC8mMdNTS0UJrh4_81Ni0aW2QpPYQiOtoc",authDomain:"jellycircleteam.firebaseapp.com",projectId:"jellycircleteam",storageBucket:"jellycircleteam.firebasestorage.app",messagingSenderId:"835206774530",appId:"1:835206774530:web:8021fc3a3edc9d1c318c1b"});
 var db=getFirestore(app);
 window.__DB=db;
 window.__FS={collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc};
+var storage=getStorage(app);
+window.__ST=storage;
+window.__STF={ref,uploadBytesResumable,getDownloadURL,deleteObject};
 window.__READY=true;
 window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -390,6 +408,52 @@ function fbSubPics(cb){
     snap.docs.forEach(function(d){pics[String(d.id)]=d.data().pic;});
     cb(pics);
   });
+}
+
+// ── Docs Firebase helpers ─────────────────────────────────────────────────────
+function fbAddDoc(docData, cb){
+  var fs=gFS();
+  fs.addDoc(fs.collection(gDB(),'docs'),docData).then(function(ref){
+    if(cb) cb(ref.id);
+  });
+}
+function fbDelDoc(docId, fileUrl){
+  var fs=gFS();
+  if(fileUrl){
+    try{
+      var stf=window.__STF, st=window.__ST;
+      var fileRef=stf.ref(st, fileUrl);
+      stf.deleteObject(fileRef).catch(function(){});
+    }catch(e){}
+  }
+  return fs.deleteDoc(fs.doc(gDB(),'docs',docId));
+}
+function fbSubDocs(cb){
+  var fs=gFS();
+  var q=fs.query(fs.collection(gDB(),'docs'),fs.orderBy('createdAt','desc'));
+  return fs.onSnapshot(q,function(snap){
+    var out=[];
+    snap.docs.forEach(function(d){
+      var data=d.data();
+      var ts=data.createdAt;
+      var obj={id:d.id};
+      for(var k in data)obj[k]=data[k];
+      obj.createdAt=(ts&&typeof ts.toMillis==='function')?ts.toMillis():Date.now();
+      out.push(obj);
+    });
+    cb(out);
+  });
+}
+function uploadFile(file, onProgress, onDone, onError){
+  var stf=window.__STF, st=window.__ST;
+  var path='docs/'+Date.now()+'_'+file.name;
+  var fileRef=stf.ref(st,path);
+  var task=stf.uploadBytesResumable(fileRef,file);
+  task.on('state_changed',
+    function(snap){if(onProgress) onProgress(Math.round(snap.bytesTransferred/snap.totalBytes*100));},
+    function(err){if(onError) onError(err);},
+    function(){stf.getDownloadURL(task.snapshot.ref).then(function(url){if(onDone) onDone(url,path);});}
+  );
 }
 
 // ── Avatar component ──────────────────────────────────────────────────────────
@@ -848,11 +912,200 @@ function Team(p){
   );
 }
 
+// ── Docs Page ─────────────────────────────────────────────────────────────────
+function Docs(p){
+  var docs=p.docs||[], user=p.user||'';
+  var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
+  var s1=useState('All'),tf=s1[0],setTf=s1[1];
+  var s2=useState(false),showForm=s2[0],setShowForm=s2[1];
+  var s3=useState({title:'',desc:'',team:'Both',url:'',file:null}),form=s3[0],setForm=s3[1];
+  var s4=useState(0),progress=s4[0],setProgress=s4[1];
+  var s5=useState(false),uploading=s5[0],setUploading=s5[1];
+  var s6=useState('file'),inputType=s6[0],setInputType=s6[1];
+  var s7=useState(null),preview=s7[0],setPreview=s7[1];
+  var fileRef=useRef(null);
+
+  function setF(k,v){setForm(function(f){var n={};for(var kk in f)n[kk]=f[kk];n[k]=v;return n;});}
+
+  function getFileIcon(name){
+    if(!name) return '📄';
+    var ext=(name.split('.').pop()||'').toLowerCase();
+    if(['pdf'].indexOf(ext)>-1) return '📕';
+    if(['doc','docx'].indexOf(ext)>-1) return '📘';
+    if(['xls','xlsx'].indexOf(ext)>-1) return '📗';
+    if(['png','jpg','jpeg','gif','webp'].indexOf(ext)>-1) return '🖼';
+    if(['mp4','mov','avi'].indexOf(ext)>-1) return '🎬';
+    return '📄';
+  }
+
+  function handleFileChange(e){
+    var f=e.target.files[0];
+    if(!f) return;
+    setF('file',f);
+    setF('title',f.name.replace(/\.[^.]+$/,''));
+    if(f.type.indexOf('image')>-1){
+      var reader=new FileReader();
+      reader.onload=function(ev){setPreview(ev.target.result);};
+      reader.readAsDataURL(f);
+    } else {
+      setPreview(null);
+    }
+  }
+
+  function submit(){
+    if(!form.title.trim()){alert('Please add a title.');return;}
+    if(inputType==='url'&&!form.url.trim()){alert('Please enter a URL.');return;}
+    if(inputType==='file'&&!form.file){alert('Please select a file.');return;}
+    setUploading(true);
+    var fs=gFS();
+    if(inputType==='url'){
+      var docData={title:form.title,desc:form.desc,team:form.team,url:form.url,fileUrl:'',fileName:'',fileType:'url',uploadedBy:user,createdAt:fs.serverTimestamp()};
+      fbAddDoc(docData,function(){
+        setShowForm(false);setForm({title:'',desc:'',team:'Both',url:'',file:null});setPreview(null);setUploading(false);
+      });
+    } else {
+      uploadFile(form.file,
+        function(pct){setProgress(pct);},
+        function(url,path){
+          var docData={title:form.title,desc:form.desc,team:form.team,url:url,fileName:form.file.name,fileType:form.file.type,filePath:path,uploadedBy:user,createdAt:fs.serverTimestamp()};
+          fbAddDoc(docData,function(){
+            setShowForm(false);setForm({title:'',desc:'',team:'Both',url:'',file:null});setProgress(0);setPreview(null);setUploading(false);
+          });
+        },
+        function(err){console.error(err);alert('Upload failed. Try again.');setUploading(false);}
+      );
+    }
+  }
+
+  function canDelete(doc){
+    if(isAdmin) return true;
+    return doc.uploadedBy===user;
+  }
+
+  var filtered=docs.filter(function(d){return tf==='All'||d.team===tf;});
+
+  return h('div',{className:'page fade-up'},
+    // Header
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24,flexWrap:'wrap',gap:12}},
+      h('div',null,
+        h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
+        h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']'))
+      ),
+      h('button',{className:'btn-y',onClick:function(){setShowForm(true);}},'+ Upload')
+    ),
+
+    // Team filter
+    h('div',{style:{display:'flex',gap:6,marginBottom:20}},
+      ['All','Business','Tech','Both'].map(function(t){
+        var active=tf===t;
+        var c=t==='Business'?'#FF3D8B':t==='Tech'?'#1A4FD6':t==='Both'?'#FFE600':'#2EA55A';
+        return h('button',{key:t,onClick:function(){setTf(t);},
+          style:{padding:'7px 14px',border:'1px solid '+(active?c:'#1B6E3C'),background:active?c:'transparent',
+            color:active?'#0D1117':c,fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,
+            textTransform:'uppercase',letterSpacing:'.06em',cursor:'pointer'}},t);
+      })
+    ),
+
+    // Upload form modal
+    showForm&&h('div',{className:'overlay',onClick:function(e){if(e.target.className==='overlay')setShowForm(false);}},
+      h('div',{className:'modal'},
+        h('div',{className:'modal-head'},
+          h('span',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Upload Doc'),
+          h('button',{onClick:function(){setShowForm(false);},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
+        ),
+        h('div',{className:'modal-body'},
+          // Type toggle
+          h('div',{style:{display:'flex',gap:2,marginBottom:16}},
+            ['file','url'].map(function(t){
+              return h('button',{key:t,onClick:function(){setInputType(t);},
+                style:{flex:1,padding:'9px',border:'1px solid '+(inputType===t?'#FFE600':'#1B6E3C'),
+                  background:inputType===t?'rgba(255,230,0,.08)':'transparent',
+                  color:inputType===t?'#FFE600':'#2EA55A',
+                  fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,
+                  textTransform:'uppercase',cursor:'pointer'}},
+                t==='file'?'Upload File':'Add URL'
+              );
+            })
+          ),
+          // Title
+          h('div',{style:{marginBottom:12}},h('label',null,'Title *'),h('input',{value:form.title,onChange:function(e){setF('title',e.target.value);},placeholder:'Document name'})),
+          // File or URL input
+          inputType==='file'
+            ?h('div',{style:{marginBottom:12}},
+                h('label',null,'File *'),
+                h('div',{className:'upload-zone',onClick:function(){if(fileRef.current)fileRef.current.click();}},
+                  preview
+                    ?h('img',{src:preview,style:{maxHeight:80,maxWidth:'100%',objectFit:'contain',marginBottom:8}})
+                    :h('div',{style:{fontSize:28,marginBottom:8}},form.file?getFileIcon(form.file.name):'📁'),
+                  h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},form.file?form.file.name:'Tap to choose file'),
+                  h('div',{style:{fontSize:11,color:'#4A5568',marginTop:4}},'PDF, Word, Excel, Images, Video'),
+                  uploading&&h('div',{className:'prog-bar'},h('div',{className:'prog-bar-fill',style:{width:progress+'%'}}))
+                ),
+                h('input',{ref:fileRef,type:'file',accept:'.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.mp4,.mov',style:{display:'none'},onChange:handleFileChange})
+              )
+            :h('div',{style:{marginBottom:12}},h('label',null,'URL *'),h('input',{value:form.url,onChange:function(e){setF('url',e.target.value);},placeholder:'https://...'})),
+          // Description
+          h('div',{style:{marginBottom:12}},h('label',null,'Description'),h('textarea',{value:form.desc,rows:2,onChange:function(e){setF('desc',e.target.value);},placeholder:'What is this doc about?',style:{resize:'vertical'}})),
+          // Team
+          h('div',{style:{marginBottom:12}},h('label',null,'Team'),
+            h('select',{value:form.team,style:{display:'block',width:'100%'},onChange:function(e){setF('team',e.target.value);}},
+              TEAMS.map(function(t){return h('option',{key:t,value:t},t);})
+            )
+          ),
+          // Footer
+          h('div',{className:'modal-footer'},
+            h('div',null),
+            h('div',{style:{display:'flex',gap:8}},
+              h('button',{className:'btn-g',onClick:function(){setShowForm(false);}},'Cancel'),
+              h('button',{className:'btn-y',onClick:submit,disabled:uploading},uploading?'Uploading '+progress+'%...':'Upload')
+            )
+          )
+        )
+      )
+    ),
+
+    // Docs grid
+    filtered.length===0
+      ?h('div',{style:{textAlign:'center',padding:'60px 0'}},
+          h('div',{style:{fontSize:40,marginBottom:12}},'📂'),
+          h('div',{className:'mono',style:{color:'#2EA55A',fontSize:12}},'// No docs yet — upload the first one')
+        )
+      :h('div',{className:'doc-grid'},
+          filtered.map(function(doc){
+            var isUrl=doc.fileType==='url';
+            var icon=isUrl?'🔗':getFileIcon(doc.fileName||'');
+            var tc=TCOL[doc.team]||'#2EA55A';
+            return h('div',{key:doc.id,className:'doc-card'},
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}},
+                h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+                  h('div',{style:{fontSize:28,lineHeight:1}},icon),
+                  h('div',null,
+                    h('div',{style:{fontWeight:700,fontSize:14,color:'#F0EDE8',lineHeight:1.3}},doc.title),
+                    h('span',{className:'badge',style:{background:tc+'18',color:tc,border:'1px solid '+tc+'55',marginTop:4}},doc.team)
+                  )
+                ),
+                canDelete(doc)&&h('button',{onClick:function(){if(window.confirm('Delete this doc?')){fbDelDoc(doc.id,doc.fileType!=='url'?doc.url:'');}},
+                  style:{background:'none',border:'none',cursor:'pointer',color:'#4A5568',fontSize:16,padding:4,lineHeight:1}},'×')
+              ),
+              doc.desc&&h('p',{style:{fontSize:13,color:'#6B7280',margin:'0 0 10px',lineHeight:1.5}},doc.desc),
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10,paddingTop:10,borderTop:'1px solid #1B2030'}},
+                h('div',{className:'mono',style:{fontSize:10,color:'#4A5568'}},doc.uploadedBy+' · '+new Date(doc.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'})),
+                h('a',{href:doc.url,target:'_blank',rel:'noopener noreferrer',
+                  style:{background:'#FFE600',color:'#0D1117',padding:'5px 12px',fontSize:11,fontWeight:700,fontFamily:'Space Mono,monospace',textTransform:'uppercase',textDecoration:'none',letterSpacing:'.05em'}},
+                  isUrl?'Open Link':'View File'
+                )
+              )
+            );
+          })
+        )
+  );
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function Sidebar(p){
   var od=p.tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length;
   var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===p.user.toLowerCase()){m=MEMBERS[i];break;}}
-  var nav=[{id:'dashboard',label:'Dashboard',icon:'-'},{id:'tasks',label:'Tasks',icon:'#',badge:od||0},{id:'team',label:'Team',icon:'@'}];
+  var nav=[{id:'dashboard',label:'Dashboard',icon:'-'},{id:'tasks',label:'Tasks',icon:'#',badge:od||0},{id:'team',label:'Team',icon:'@'},{id:'docs',label:'Docs',icon:'D'}];
   return h('div',{className:'sidebar'},
     h('div',{className:'sidebar-logo',style:{padding:'20px 20px 16px',borderBottom:'2px solid #1B6E3C'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
@@ -891,6 +1144,7 @@ function App(){
   var s1=useState(function(){return lsGet('jc_user');}),user=s1[0],setUser=s1[1];
   var s2=useState([]),tasks=s2[0],setTasks=s2[1];
   var s3=useState({}),pics=s3[0],setPics=s3[1];
+  var s10=useState([]),docs=s10[0],setDocs=s10[1];
   var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
   var s5=useState(null),modal=s5[0],setModal=s5[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
@@ -909,7 +1163,8 @@ function App(){
     if(!fbReady||!user)return;
     var u1=fbSub(function(t){setTasks(t);setLoaded(true);});
     var u2=fbSubPics(function(pp){setPics(pp);});
-    return function(){u1();u2();};
+    var u3=fbSubDocs(function(d){setDocs(d);});
+    return function(){u1();u2();u3();};
   },[fbReady,user]);
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
@@ -943,7 +1198,8 @@ function App(){
       h('div',{className:'main-scroll'},
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
-        page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user})
+        page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user}),
+        page==='docs'&&h(Docs,{docs:docs,user:user})
       )
     ),
     modal!==null&&h(TaskModal,{task:modal,onClose:function(){setModal(null);},onSave:saveTask,onDelete:deleteTask,user:user,saving:saving,pics:pics,canEdit:ce}),
