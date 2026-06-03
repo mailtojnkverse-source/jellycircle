@@ -449,12 +449,24 @@ function fbDelDoc(docId){
   return fs.deleteDoc(fs.doc(gDB(),'docs',docId));
 }
 function fbSubTZ(cb){
-  var fs=gFS();
-  return fs.onSnapshot(fs.collection(gDB(),'timezones'),function(snap){
-    var map={};
-    snap.docs.forEach(function(d){map[String(d.id)]=d.data();});
-    cb(map);
-  });
+  try{
+    var fs=gFS();
+    return fs.onSnapshot(fs.collection(gDB(),'timezones'),
+      function(snap){
+        var map={};
+        snap.docs.forEach(function(d){map[String(d.id)]=d.data();});
+        cb(map);
+      },
+      function(err){
+        console.error('TZ subscription error:',err);
+        cb({});
+      }
+    );
+  }catch(e){
+    console.error('fbSubTZ error:',e);
+    cb({});
+    return function(){};
+  }
 }
 
 function fbSubDocs(cb){
@@ -1258,7 +1270,9 @@ function App(){
     var u2=fbSubPics(function(pp){setPics(pp);});
     var u3=fbSubDocs(function(d){setDocs(d);});
     var u4=fbSubTZ(function(tz){setTzMap(tz);});
-    return function(){u1();u2();u3();u4();};
+    // Safety timeout — force load after 6 seconds no matter what
+    var timeout=setTimeout(function(){setLoaded(true);},6000);
+    return function(){u1();u2();u3();u4();clearTimeout(timeout);};
   },[fbReady,user]);
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
