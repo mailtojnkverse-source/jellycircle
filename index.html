@@ -334,6 +334,8 @@ function canEdit(user,task){
   if(!task||!task.id)return true;
   // Admins can edit everything
   for(var i=0;i<ADMINS.length;i++){if(ADMINS[i]===(user||'').toLowerCase())return true;}
+  // Unassigned tasks can be edited by anyone
+  if(!task.assignedTo)return true;
   var m=null;for(var j=0;j<MEMBERS.length;j++){if(MEMBERS[j].name.toLowerCase()===(user||'').toLowerCase()){m=MEMBERS[j];break;}}
   if(!m)return false;
   // Assignee can edit their own task
@@ -611,7 +613,7 @@ function TaskModal(p){
   function set(k,v){setForm(function(f){var n={};for(var kk in f)n[kk]=f[kk];n[k]=v;return n;});}
   function save(){
     if(!form.title.trim())return;
-    if(!form.assignedTo){alert('Please assign this task to a team member.');return;}
+
     if(!form.deadline){alert('Please set a deadline.');return;}
     if(p.saving)return;
     var out={
@@ -693,7 +695,7 @@ function TaskModal(p){
             h('div',{style:{marginBottom:12}},h('label',null,'Assign To *'),
               ro?h('div',{className:'ro-field'},(function(){var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].id===form.assignedTo){m=MEMBERS[i];break;}}return m?m.name:'Unassigned';})())
                 :h('select',{value:form.assignedTo,style:{display:'block',width:'100%'},onChange:function(e){set('assignedTo',Number(e.target.value)||'');}},
-                    [h('option',{key:'',value:'',disabled:true},'— Select a member —')].concat(MEMBERS.map(function(m){return h('option',{key:m.id,value:m.id},m.name);}))
+                    [h('option',{key:'',value:''},'— Unassigned —')].concat(MEMBERS.map(function(m){return h('option',{key:m.id,value:m.id},m.name);}))
                   )
             ),
             sField('Priority',form.priority,'priority',PRIORITIES),
