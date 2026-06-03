@@ -261,14 +261,12 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getFirestore,collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import{getStorage,ref,uploadBytesResumable,getDownloadURL,deleteObject}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
 var app=initializeApp({apiKey:"AIzaSyC8mMdNTS0UJrh4_81Ni0aW2QpPYQiOtoc",authDomain:"jellycircleteam.firebaseapp.com",projectId:"jellycircleteam",storageBucket:"jellycircleteam.firebasestorage.app",messagingSenderId:"835206774530",appId:"1:835206774530:web:8021fc3a3edc9d1c318c1b"});
 var db=getFirestore(app);
 window.__DB=db;
 window.__FS={collection,onSnapshot,addDoc,updateDoc,deleteDoc,doc,serverTimestamp,query,orderBy,setDoc};
-var storage=getStorage(app);
-window.__ST=storage;
-window.__STF={ref,uploadBytesResumable,getDownloadURL,deleteObject};
+
 window.__READY=true;
 window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -415,15 +413,8 @@ function fbAddDoc(docData, cb){
     if(cb) cb(ref.id);
   });
 }
-function fbDelDoc(docId, fileUrl){
+function fbDelDoc(docId){
   var fs=gFS();
-  if(fileUrl){
-    try{
-      var stf=window.__STF, st=window.__ST;
-      var fileRef=stf.ref(st, fileUrl);
-      stf.deleteObject(fileRef).catch(function(){});
-    }catch(e){}
-  }
   return fs.deleteDoc(fs.doc(gDB(),'docs',docId));
 }
 function fbSubDocs(cb){
@@ -443,15 +434,27 @@ function fbSubDocs(cb){
   });
 }
 function uploadFile(file, onProgress, onDone, onError){
-  var stf=window.__STF, st=window.__ST;
-  var path='docs/'+Date.now()+'_'+file.name;
-  var fileRef=stf.ref(st,path);
-  var task=stf.uploadBytesResumable(fileRef,file);
-  task.on('state_changed',
-    function(snap){if(onProgress) onProgress(Math.round(snap.bytesTransferred/snap.totalBytes*100));},
-    function(err){if(onError) onError(err);},
-    function(){stf.getDownloadURL(task.snapshot.ref).then(function(url){if(onDone) onDone(url,path);});}
-  );
+  var CLOUD='dlctazmoi';
+  var PRESET='jc_teambase'; // unsigned upload preset
+  var url='https://api.cloudinary.com/v1_1/'+CLOUD+'/auto/upload';
+  var fd=new FormData();
+  fd.append('file',file);
+  fd.append('upload_preset',PRESET);
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',url,true);
+  xhr.upload.onprogress=function(e){
+    if(e.lengthComputable&&onProgress) onProgress(Math.round(e.loaded/e.total*100));
+  };
+  xhr.onload=function(){
+    if(xhr.status===200){
+      var res=JSON.parse(xhr.responseText);
+      if(onDone) onDone(res.secure_url, res.public_id);
+    } else {
+      if(onError) onError(new Error('Upload failed: '+xhr.status));
+    }
+  };
+  xhr.onerror=function(){if(onError) onError(new Error('Network error'));};
+  xhr.send(fd);
 }
 
 // ── Avatar component ──────────────────────────────────────────────────────────
@@ -1084,7 +1087,7 @@ function Docs(p){
                     h('span',{className:'badge',style:{background:tc+'18',color:tc,border:'1px solid '+tc+'55',marginTop:4}},doc.team)
                   )
                 ),
-                canDelete(doc)&&h('button',{onClick:function(){if(window.confirm('Delete this doc?')){fbDelDoc(doc.id,doc.fileType!=='url'?doc.url:'');}},
+                canDelete(doc)&&h('button',{onClick:function(){if(window.confirm('Delete this doc?')){fbDelDoc(doc.id);}},
                   style:{background:'none',border:'none',cursor:'pointer',color:'#4A5568',fontSize:16,padding:4,lineHeight:1}},'×')
               ),
               doc.desc&&h('p',{style:{fontSize:13,color:'#6B7280',margin:'0 0 10px',lineHeight:1.5}},doc.desc),
