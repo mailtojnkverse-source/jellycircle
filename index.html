@@ -929,6 +929,7 @@ function Docs(p){
   var docs=p.docs||[], user=p.user||'';
   var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
   var s1=useState('All'),tf=s1[0],setTf=s1[1];
+  var sq=useState(''),q=sq[0],setQ=sq[1];
   var s2=useState(false),showForm=s2[0],setShowForm=s2[1];
   var s3=useState({title:'',desc:'',team:'Both',url:'',file:null}),form=s3[0],setForm=s3[1];
   var s4=useState(0),progress=s4[0],setProgress=s4[1];
@@ -994,7 +995,11 @@ function Docs(p){
     return doc.uploadedBy===user;
   }
 
-  var filtered=docs.filter(function(d){return tf==='All'||d.team===tf;});
+  var filtered=docs.filter(function(d){
+    if(tf!=='All'&&d.team!==tf)return false;
+    if(q&&d.title.toLowerCase().indexOf(q.toLowerCase())<0&&(d.desc||'').toLowerCase().indexOf(q.toLowerCase())<0)return false;
+    return true;
+  });
 
   return h('div',{className:'page fade-up'},
     // Header
@@ -1006,16 +1011,19 @@ function Docs(p){
       h('button',{className:'btn-y',onClick:function(){setShowForm(true);}},'+ Upload')
     ),
 
-    // Team filter
-    h('div',{style:{display:'flex',gap:6,marginBottom:20}},
-      ['All','Business','Tech','Both'].map(function(t){
-        var active=tf===t;
-        var c=t==='Business'?'#FF3D8B':t==='Tech'?'#1A4FD6':t==='Both'?'#FFE600':'#2EA55A';
-        return h('button',{key:t,onClick:function(){setTf(t);},
-          style:{padding:'7px 14px',border:'1px solid '+(active?c:'#1B6E3C'),background:active?c:'transparent',
-            color:active?'#0D1117':c,fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,
-            textTransform:'uppercase',letterSpacing:'.06em',cursor:'pointer'}},t);
-      })
+    // Search + Team filter
+    h('div',{style:{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap',alignItems:'center'}},
+      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search docs...',style:{width:200,flexShrink:0}}),
+      h('div',{style:{display:'flex',gap:6}},
+        ['All','Business','Tech','Both'].map(function(t){
+          var active=tf===t;
+          var c=t==='Business'?'#FF3D8B':t==='Tech'?'#1A4FD6':t==='Both'?'#FFE600':'#2EA55A';
+          return h('button',{key:t,onClick:function(){setTf(t);},
+            style:{padding:'7px 14px',border:'1px solid '+(active?c:'#1B6E3C'),background:active?c:'transparent',
+              color:active?'#0D1117':c,fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,
+              textTransform:'uppercase',letterSpacing:'.06em',cursor:'pointer'}},t);
+        })
+      )
     ),
 
     // Upload form modal
