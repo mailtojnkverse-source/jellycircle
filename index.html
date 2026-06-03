@@ -140,11 +140,11 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 .two-col{display:-webkit-flex;display:flex;gap:14px;margin-bottom:14px}
 .two-col > *{-webkit-flex:1;flex:1;min-width:0}
 
-.board{display:-webkit-flex;display:flex;gap:2px}
-.board-col{-webkit-flex:1;flex:1;min-width:0;background:rgba(27,110,60,.04);border:1px solid #1B6E3C;padding:12px}
+.board{display:-webkit-flex;display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.board-col{-webkit-flex:1;flex:1;min-width:220px;background:rgba(27,110,60,.04);border:1px solid #1B6E3C;padding:12px}
 @media(max-width:768px){
-  .board{-webkit-flex-direction:column;flex-direction:column}
-  .board-col{width:100%;-webkit-flex:none;flex:none}
+  .board{-webkit-flex-direction:column;flex-direction:column;overflow-x:hidden}
+  .board-col{width:100%;-webkit-flex:none;flex:none;min-width:unset}
 }
 .team-grid{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:2px}
 .team-card{width:calc(50% - 1px);background:#161B22;border:1px solid #1B6E3C;padding:16px}
@@ -853,8 +853,49 @@ function Tasks(p){
       )
     ),
     h('div',{className:'board'},
+      // Unassigned column (virtual - shows To Do tasks with no assignee)
+      h('div',{key:'unassigned',className:'board-col',style:{borderTop:'3px solid #FF3D8B'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,paddingBottom:10,borderBottom:'1px solid #1B6E3C'}},
+          h('span',{className:'mono',style:{fontSize:11,color:'#FF3D8B',textTransform:'uppercase',letterSpacing:'.08em'}},'? Unassigned'),
+          h('span',{style:{marginLeft:'auto',background:'rgba(255,61,139,.2)',color:'#FF3D8B',border:'1px solid rgba(255,61,139,.4)',padding:'1px 8px',fontSize:10,fontFamily:'Space Mono,monospace',fontWeight:700}},
+            filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).length
+          )
+        ),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+          filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).map(function(t,i){
+            var odd=isOD(t.deadline),cc=t.comments?t.comments.length:0;
+            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2,borderLeft:'3px solid #FF3D8B'},onClick:function(){p.onEdit(t);}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},
+                h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})
+              ),
+              h('div',{style:{fontWeight:600,fontSize:14,color:'#F0EDE8',marginBottom:6,lineHeight:1.4}},t.title),
+              t.description&&h('p',{style:{fontSize:12,color:'#6B7280',margin:'0 0 10px',lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}},t.description),
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8,paddingTop:8,borderTop:'1px solid #1B2030'}},
+                h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+                  h('span',{style:{fontSize:11,color:'#FF3D8B',fontFamily:'Space Mono,monospace'}},'— Unassigned')
+                ),
+                h('div',{style:{textAlign:'right'}},
+                  t.deadline&&h('div',{className:'mono',style:{fontSize:10,color:odd?'#E8251F':'#6B7280',fontWeight:odd?700:400}},(odd?'OD ':'')+fmtD(t.deadline)),
+                  cc>0&&h('div',{style:{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:3,marginTop:2}},
+                    h('svg',{width:12,height:12,viewBox:'0 0 24 24',fill:'none'},
+                      h('path',{d:'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',stroke:'#FF3D8B',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'})
+                    ),
+                    h('span',{style:{fontSize:10,fontWeight:700,color:'#FF3D8B',fontFamily:'Space Mono,monospace'}},cc)
+                  )
+                )
+              )
+            );
+          }),
+          filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).length===0&&
+            h('div',{className:'mono',style:{textAlign:'center',padding:'24px 0',color:'#1B6E3C',fontSize:11,border:'1px dashed #1B6E3C'}},'// all assigned')
+        )
+      ),
       STATUSES.map(function(status){
-        var col=filtered.filter(function(t){return t.status===status;}),sc=STA[status];
+        var col=filtered.filter(function(t){
+          // Exclude unassigned To Do tasks from the To Do column
+          if(status==='To Do') return t.status===status&&t.assignedTo;
+          return t.status===status;
+        }),sc=STA[status];
         return h('div',{key:status,className:'board-col'},
           h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,paddingBottom:10,borderBottom:'1px solid #1B6E3C'}},
             h('span',{className:'mono',style:{fontSize:11,color:sc.c,textTransform:'uppercase',letterSpacing:'.08em'}},sc.i+' '+status),
