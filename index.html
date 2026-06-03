@@ -887,7 +887,7 @@ function Tasks(p){
             );
           }),
           filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).length===0&&
-            h('div',{className:'mono',style:{textAlign:'center',padding:'24px 0',color:'#1B6E3C',fontSize:11,border:'1px dashed #1B6E3C'}},'// all assigned')
+            h('div',{className:'mono',style:{textAlign:'center',padding:'24px 0',color:'#1B6E3C',fontSize:11,border:'1px dashed #1B6E3C'}},'// all unassigned')
         )
       ),
       STATUSES.map(function(status){
