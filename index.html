@@ -127,7 +127,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 .doc-card:hover{border-color:#FF3D8B;-webkit-transform:translateY(-1px);transform:translateY(-1px)}
 .doc-grid{display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap;gap:2px}
 .doc-grid .doc-card{width:calc(33.333% - 2px);min-width:220px;-webkit-flex:1;flex:1}
-.upload-zone{border:2px dashed #1B6E3C;padding:32px;text-align:center;cursor:pointer;-webkit-transition:border-color .15s;transition:border-color .15s;background:rgba(27,110,60,.04)}
+.upload-zone{border:2px dashed #1B6E3C;padding:16px 12px;text-align:center;cursor:pointer;-webkit-transition:border-color .15s;transition:border-color .15s;background:rgba(27,110,60,.04)}
 .upload-zone:hover{border-color:#FFE600}
 .upload-zone.drag-over{border-color:#FF3D8B;background:rgba(255,61,139,.05)}
 .prog-bar{height:4px;background:#1B2030;margin-top:8px;overflow:hidden}
@@ -1034,16 +1034,16 @@ function Docs(p){
                 h('div',{className:'upload-zone',onClick:function(){if(fileRef.current)fileRef.current.click();}},
                   preview
                     ?h('img',{src:preview,style:{maxHeight:80,maxWidth:'100%',objectFit:'contain',marginBottom:8}})
-                    :h('div',{style:{fontSize:28,marginBottom:8}},form.file?getFileIcon(form.file.name):'📁'),
+                    :h('div',{style:{fontSize:20,marginBottom:4}},form.file?getFileIcon(form.file.name):'📁'),
                   h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},form.file?form.file.name:'Tap to choose file'),
-                  h('div',{style:{fontSize:11,color:'#4A5568',marginTop:4}},'PDF, Word, Excel, Images, Video'),
+                  h('div',{style:{fontSize:10,color:'#4A5568',marginTop:2}},'PDF, Word, Excel, Images, Video'),
                   uploading&&h('div',{className:'prog-bar'},h('div',{className:'prog-bar-fill',style:{width:progress+'%'}}))
                 ),
                 h('input',{ref:fileRef,type:'file',accept:'.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.mp4,.mov',style:{display:'none'},onChange:handleFileChange})
               )
             :h('div',{style:{marginBottom:12}},h('label',null,'URL *'),h('input',{value:form.url,onChange:function(e){setF('url',e.target.value);},placeholder:'https://...'})),
           // Description
-          h('div',{style:{marginBottom:12}},h('label',null,'Description'),h('textarea',{value:form.desc,rows:2,onChange:function(e){setF('desc',e.target.value);},placeholder:'What is this doc about?',style:{resize:'vertical'}})),
+          h('div',{style:{marginBottom:12}},h('label',null,'Description'),h('textarea',{value:form.desc,rows:1,onChange:function(e){setF('desc',e.target.value);},placeholder:'What is this doc about?',style:{resize:'none'}})),
           // Team
           h('div',{style:{marginBottom:12}},h('label',null,'Team'),
             h('select',{value:form.team,style:{display:'block',width:'100%'},onChange:function(e){setF('team',e.target.value);}},
