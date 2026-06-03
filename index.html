@@ -1119,7 +1119,7 @@ function Docs(p){
 function Sidebar(p){
   var od=p.tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length;
   var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===p.user.toLowerCase()){m=MEMBERS[i];break;}}
-  var nav=[{id:'dashboard',label:'Dashboard',icon:'-'},{id:'tasks',label:'Tasks',icon:'#',badge:od||0},{id:'team',label:'Team',icon:'@'},{id:'docs',label:'Docs',icon:'D'}];
+  var nav=[{id:'dashboard',label:'Dashboard',icon:'-'},{id:'tasks',label:'Tasks',icon:'#',badge:od||0},{id:'docs',label:'Docs',icon:'D'},{id:'team',label:'Team',icon:'@'}];
   return h('div',{className:'sidebar'},
     h('div',{className:'sidebar-logo',style:{padding:'20px 20px 16px',borderBottom:'2px solid #1B6E3C'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
