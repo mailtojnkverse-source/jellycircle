@@ -435,11 +435,17 @@ function fbSubDocs(cb){
 }
 function uploadFile(file, onProgress, onDone, onError){
   var CLOUD='dlctazmoi';
-  var PRESET='jc_teambase'; // unsigned upload preset
-  var url='https://api.cloudinary.com/v1_1/'+CLOUD+'/auto/upload';
+  var PRESET='jc_teambase';
+  // Pick resource type based on file type
+  var type=file.type||'';
+  var resourceType='raw';
+  if(type.indexOf('image')>-1) resourceType='image';
+  else if(type.indexOf('video')>-1) resourceType='video';
+  var url='https://api.cloudinary.com/v1_1/'+CLOUD+'/'+resourceType+'/upload';
   var fd=new FormData();
   fd.append('file',file);
   fd.append('upload_preset',PRESET);
+  fd.append('resource_type',resourceType);
   var xhr=new XMLHttpRequest();
   xhr.open('POST',url,true);
   xhr.upload.onprogress=function(e){
@@ -447,13 +453,18 @@ function uploadFile(file, onProgress, onDone, onError){
   };
   xhr.onload=function(){
     if(xhr.status===200){
-      var res=JSON.parse(xhr.responseText);
-      if(onDone) onDone(res.secure_url, res.public_id);
+      try{
+        var res=JSON.parse(xhr.responseText);
+        if(onDone) onDone(res.secure_url, res.public_id);
+      }catch(e){
+        if(onError) onError(new Error('Parse error'));
+      }
     } else {
-      if(onError) onError(new Error('Upload failed: '+xhr.status));
+      console.error('Cloudinary error:', xhr.status, xhr.responseText);
+      if(onError) onError(new Error('Upload failed ('+xhr.status+'): '+xhr.responseText));
     }
   };
-  xhr.onerror=function(){if(onError) onError(new Error('Network error'));};
+  xhr.onerror=function(){if(onError) onError(new Error('Network error - check connection'));};
   xhr.send(fd);
 }
 
@@ -973,7 +984,7 @@ function Docs(p){
             setShowForm(false);setForm({title:'',desc:'',team:'Both',url:'',file:null});setProgress(0);setPreview(null);setUploading(false);
           });
         },
-        function(err){console.error(err);alert('Upload failed. Try again.');setUploading(false);}
+        function(err){console.error('Upload error:',err);alert('Upload failed: '+(err.message||'Unknown error')+'. Check Cloudinary preset settings.');setUploading(false);}
       );
     }
   }
