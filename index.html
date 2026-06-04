@@ -1292,14 +1292,14 @@ function Docs(p){
 // ── Mobile Bar + Drawer ───────────────────────────────────────────────────────
 function MobileBar(p){
   return h('div',{className:'mobile-bar',style:{display:'flex',alignItems:'center',padding:'12px 16px',background:'#0D1117',borderBottom:'2px solid #1B6E3C',position:'sticky',top:0,zIndex:40,gap:12}},
+    h('img',{src:LOGO,alt:'JC',style:{width:32,height:32,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B',flexShrink:0}}),
+    h('span',{style:{fontSize:16,fontWeight:700,color:'#F0EDE8',flex:1}},'Jelly Circle'),
+    p.overdueCount>0&&h('span',{style:{background:'#E8251F',color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:'Space Mono,monospace',fontWeight:700,flexShrink:0}},p.overdueCount+' OD'),
     h('button',{className:'burger-btn',onClick:p.onOpen,style:{background:'none',border:'none',cursor:'pointer',padding:'6px',display:'flex',flexDirection:'column',gap:5,flexShrink:0}},
       h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}}),
       h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}}),
       h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}})
-    ),
-    h('img',{src:LOGO,alt:'JC',style:{width:32,height:32,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B',flexShrink:0}}),
-    h('span',{style:{fontSize:16,fontWeight:700,color:'#F0EDE8',flex:1}},'Jelly Circle'),
-    p.overdueCount>0&&h('span',{style:{background:'#E8251F',color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:'Space Mono,monospace',fontWeight:700,flexShrink:0}},p.overdueCount+' OD')
+    )
   );
 }
 
