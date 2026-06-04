@@ -115,8 +115,8 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 .sg::after{background:#2EA55A}.sy::after{background:#FFE600}.sp::after{background:#FF3D8B}.sr::after{background:#E8251F}
 
 /* Avatar */
-.av-wrap{position:relative;overflow:hidden;-webkit-flex-shrink:0;flex-shrink:0}
-.drawer .av-wrap,.drawer .av-wrap img,.drawer .av-wrap div{border-radius:50% !important}
+.av-wrap{position:relative;-webkit-flex-shrink:0;flex-shrink:0}
+
 .av-over{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.72);display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;opacity:0;-webkit-transition:opacity .15s;transition:opacity .15s;font-size:8px;color:#FFE600;font-family:'Space Mono',monospace;text-align:center;line-height:1.4}
 .av-wrap:hover .av-over{opacity:1}
 
@@ -541,19 +541,40 @@ function Av(props){
   var m=props.m,sz=props.sz||34,editable=props.editable||false,pics=props.pics||{};
   var ref=useRef(null);
   var pic=m?pics[String(m.id)]:null;
+  var memberColor=m?m.color:'#2EA55A';
+  var pad=Math.max(2,Math.round(sz*.055));
+  var innerSz=sz-pad*2;
+
   function onFile(e){
     var f=e.target.files[0];if(!f||!m)return;
     var reader=new FileReader();
     reader.onload=function(ev){fbSavePic(m.id,ev.target.result);};
     reader.readAsDataURL(f);
   }
-  var imgEl=pic
-    ?h('img',{src:pic,alt:m?m.ini:'?',style:{width:sz,height:sz,objectFit:'cover',display:'block'}})
-    :h('div',{style:{width:sz,height:sz,background:m?m.color:'#1B2030',display:'flex',alignItems:'center',justifyContent:'center',fontSize:Math.round(sz*.32),fontWeight:700,color:m?'#0D1117':'#2EA55A',fontFamily:'Space Mono,monospace'}},m?m.ini:'?');
-  if(!editable)return h('div',{style:{flexShrink:0,overflow:'hidden',width:sz,height:sz}},imgEl);
-  return h('div',{className:'av-wrap',style:{width:sz,height:sz},onClick:function(){if(ref.current)ref.current.click();}},
-    imgEl,
-    h('div',{className:'av-over'},'CHANGE PHOTO'),
+
+  var innerEl=pic
+    ?h('img',{src:pic,alt:m?m.ini:'?',style:{width:innerSz,height:innerSz,objectFit:'cover',display:'block',borderRadius:'50%'}})
+    :h('div',{style:{width:innerSz,height:innerSz,borderRadius:'50%',background:m?m.color:'#1B2030',display:'flex',alignItems:'center',justifyContent:'center',fontSize:Math.round(innerSz*.35),fontWeight:700,color:m?'#0D1117':'#2EA55A',fontFamily:'Space Mono,monospace'}},m?m.ini:'?');
+
+  var ring=h('div',{style:{
+    width:sz,height:sz,borderRadius:'50%',flexShrink:0,
+    background:'linear-gradient(135deg,'+memberColor+',#FFE600)',
+    padding:pad,display:'flex',alignItems:'center',justifyContent:'center',
+    boxSizing:'border-box'
+  }},innerEl);
+
+  if(!editable)return ring;
+
+  return h('div',{className:'av-wrap',style:{width:sz,height:sz,borderRadius:'50%',flexShrink:0,cursor:'pointer'},onClick:function(){if(ref.current)ref.current.click();}},
+    h('div',{style:{
+      width:sz,height:sz,borderRadius:'50%',
+      background:'linear-gradient(135deg,'+memberColor+',#FFE600)',
+      padding:pad,display:'flex',alignItems:'center',justifyContent:'center',
+      boxSizing:'border-box',position:'relative'
+    }},
+      innerEl,
+      h('div',{className:'av-over',style:{borderRadius:'50%'}},'CHANGE')
+    ),
     h('input',{ref:ref,type:'file',accept:'image/*',style:{display:'none'},onChange:onFile})
   );
 }
@@ -1323,10 +1344,7 @@ function Drawer(p){
         background:m?'linear-gradient(135deg,'+m.color+'18 0%,rgba(13,17,23,0) 60%)':'rgba(27,110,60,.08)'}},
         h('button',{onClick:p.onClose,style:{position:'absolute',top:14,right:14,background:'none',border:'none',cursor:'pointer',color:'#2EA55A',fontSize:22,lineHeight:1,padding:4}},'×'),
         h('div',{style:{display:'flex',alignItems:'center',gap:14}},
-          h('div',{style:{borderRadius:'50%',padding:2,flexShrink:0,
-            background:m?'linear-gradient(135deg,'+m.color+',#FF3D8B,#FFE600)':'linear-gradient(135deg,#2EA55A,#FFE600)'}},
-            h(Av,{m:m,sz:52,pics:p.pics,editable:true})
-          ),
+          h(Av,{m:m,sz:52,pics:p.pics,editable:true}),
           h('div',{style:{display:'flex',flexDirection:'column',justifyContent:'center',gap:4}},
             h('div',{style:{fontSize:19,fontWeight:700,color:'#F0EDE8',lineHeight:1.2}},'Hi, '+firstName+'!'),
             h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}},'Welcome to Teambase')
