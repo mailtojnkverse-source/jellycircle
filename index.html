@@ -167,6 +167,10 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .ticker-item{padding:0 16px;font-size:9px}
   /* Docs search full width on mobile */
   .docs-search{width:100% !important;flex:1 1 100% !important}
+  /* Upload modal on mobile - anchored near top, scrollable */
+  .upload-overlay{-webkit-align-items:flex-start !important;align-items:flex-start !important;padding-top:60px !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch}
+  .upload-overlay .modal{max-height:none !important;height:auto !important;overflow-y:visible !important}
+  .upload-modal-grid{grid-template-columns:1fr !important}
   /* Upload modal mobile */
   .upload-modal-grid{grid-template-columns:1fr !important}
 
@@ -1124,14 +1128,18 @@ function Team(p){
 }
 
 
-// ── Upload Modal ──────────────────────────────────────────────────────────────
-function UploadModal(p){
-  var user=p.user||'';
-  var s1=useState({title:'',desc:'',team:'Both',url:'',file:null}),form=s1[0],setForm=s1[1];
-  var s2=useState(0),progress=s2[0],setProgress=s2[1];
-  var s3=useState(false),uploading=s3[0],setUploading=s3[1];
-  var s4=useState('file'),inputType=s4[0],setInputType=s4[1];
-  var s5=useState(null),preview=s5[0],setPreview=s5[1];
+// ── Docs Page ─────────────────────────────────────────────────────────────────
+function Docs(p){
+  var docs=p.docs||[], user=p.user||'';
+  var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
+  var s1=useState('All'),tf=s1[0],setTf=s1[1];
+  var sq=useState(''),q=sq[0],setQ=sq[1];
+  var s2=useState(false),showForm=s2[0],setShowForm=s2[1];
+  var s3=useState({title:'',desc:'',team:'Both',url:'',file:null}),form=s3[0],setForm=s3[1];
+  var s4=useState(0),progress=s4[0],setProgress=s4[1];
+  var s5=useState(false),uploading=s5[0],setUploading=s5[1];
+  var s6=useState('file'),inputType=s6[0],setInputType=s6[1];
+  var s7=useState(null),preview=s7[0],setPreview=s7[1];
   var fileRef=useRef(null);
 
   function setF(k,v){setForm(function(f){var n={};for(var kk in f)n[kk]=f[kk];n[k]=v;return n;});}
@@ -1168,8 +1176,8 @@ function UploadModal(p){
     if(inputType==='url'){
       var docData={title:form.title,desc:form.desc,team:form.team,url:form.url,fileUrl:'',fileName:'',fileType:'url',uploadedBy:user,createdAt:fs.serverTimestamp()};
       fbAddDoc(docData,function(){
-        setForm({title:'',desc:'',team:'Both',url:'',file:null});setPreview(null);setUploading(false);
-        p.onClose();
+        setShowForm(false);setForm({title:'',desc:'',team:'Both',url:'',file:null});setPreview(null);setUploading(false);
+        document.body.style.overflow='';
       });
     } else {
       uploadFile(form.file,
@@ -1177,77 +1185,14 @@ function UploadModal(p){
         function(url,path){
           var docData={title:form.title,desc:form.desc,team:form.team,url:url,fileName:form.file.name,fileType:form.file.type,filePath:path,uploadedBy:user,createdAt:fs.serverTimestamp()};
           fbAddDoc(docData,function(){
-            setForm({title:'',desc:'',team:'Both',url:'',file:null});setProgress(0);setPreview(null);setUploading(false);
-            p.onClose();
+            setShowForm(false);setForm({title:'',desc:'',team:'Both',url:'',file:null});setProgress(0);setPreview(null);setUploading(false);
+            document.body.style.overflow='';
           });
         },
         function(err){console.error(err);alert('Upload failed: '+(err.message||'Unknown error'));setUploading(false);}
       );
     }
   }
-
-  return h('div',{className:'overlay',onClick:function(e){if(e.target.className==='overlay'){p.onClose();}}},
-    h('div',{className:'modal upload-modal'},
-      h('div',{className:'modal-head'},
-        h('span',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Upload Doc'),
-        h('button',{onClick:p.onClose,style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
-      ),
-      h('div',{className:'modal-body'},
-        h('div',{style:{display:'flex',gap:2,marginBottom:10}},
-          ['file','url'].map(function(t){
-            return h('button',{key:t,onClick:function(){setInputType(t);},
-              style:{flex:1,padding:'7px',border:'1px solid '+(inputType===t?'#FFE600':'#1B6E3C'),
-                background:inputType===t?'rgba(255,230,0,.08)':'transparent',
-                color:inputType===t?'#FFE600':'#2EA55A',
-                fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,
-                textTransform:'uppercase',cursor:'pointer'}},
-              t==='file'?'Upload File':'Add URL'
-            );
-          })
-        ),
-        h('div',{style:{marginBottom:10}},h('label',null,'Title *'),h('input',{value:form.title,onChange:function(e){setF('title',e.target.value);},placeholder:'Document name'})),
-        inputType==='file'
-          ?h('div',{style:{marginBottom:10}},
-              h('label',null,'File *'),
-              h('div',{className:'upload-zone',onClick:function(){if(fileRef.current)fileRef.current.click();},
-                style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:'1px dashed #1B6E3C',background:'rgba(27,110,60,.04)',cursor:'pointer'}},
-                h('div',{style:{fontSize:24,flexShrink:0}},form.file?getFileIcon(form.file.name):'📁'),
-                h('div',null,
-                  h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},form.file?form.file.name:'Tap to choose file'),
-                  h('div',{style:{fontSize:10,color:'#4A5568',marginTop:2}},'PDF, Word, Excel, Images, Video')
-                )
-              ),
-              uploading&&h('div',{className:'prog-bar'},h('div',{className:'prog-bar-fill',style:{width:progress+'%'}})),
-              h('input',{ref:fileRef,type:'file',accept:'.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.mp4,.mov',style:{display:'none'},onChange:handleFileChange})
-            )
-          :h('div',{style:{marginBottom:10}},h('label',null,'URL *'),h('input',{value:form.url,onChange:function(e){setF('url',e.target.value);},placeholder:'https://...'})),
-        h('div',{className:'upload-modal-grid',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}},
-          h('div',null,h('label',null,'Description'),h('input',{value:form.desc,onChange:function(e){setF('desc',e.target.value);},placeholder:'Optional note'})),
-          h('div',null,h('label',null,'Team'),
-            h('select',{value:form.team,style:{display:'block',width:'100%'},onChange:function(e){setF('team',e.target.value);}},
-              TEAMS.map(function(t){return h('option',{key:t,value:t},t);})
-            )
-          )
-        ),
-        h('div',{className:'modal-footer',style:{marginTop:10,paddingTop:10}},
-          h('div',null),
-          h('div',{style:{display:'flex',gap:8}},
-            h('button',{className:'btn-g',onClick:p.onClose},'Cancel'),
-            h('button',{className:'btn-y',onClick:submit,disabled:uploading},uploading?'Uploading '+progress+'%...':'Upload')
-          )
-        )
-      )
-    )
-  );
-}
-
-// ── Docs Page ─────────────────────────────────────────────────────────────────
-function Docs(p){
-  var docs=p.docs||[], user=p.user||'';
-  var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
-  var s1=useState('All'),tf=s1[0],setTf=s1[1];
-  var sq=useState(''),q=sq[0],setQ=sq[1];
-
 
   function canDelete(doc){
     if(isAdmin) return true;
@@ -1266,10 +1211,64 @@ function Docs(p){
       h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
         h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']')),
-        h('button',{className:'btn-y',onClick:function(){p.onUpload();}},'+ Upload')
+        h('button',{className:'btn-y',onClick:function(){setShowForm(true);document.body.style.overflow='hidden';}},'+ Upload')
       )
     ),
-
+    // Upload modal
+    showForm&&h('div',{className:'overlay upload-overlay',onClick:function(e){var cn=e.target.className;if(cn==='overlay upload-overlay'||cn==='overlay'){setShowForm(false);document.body.style.overflow='';}},
+      style:{zIndex:100}},
+      h('div',{className:'modal upload-modal'},
+        h('div',{className:'modal-head'},
+          h('span',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Upload Doc'),
+          h('button',{onClick:function(){setShowForm(false);document.body.style.overflow='';},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
+        ),
+        h('div',{className:'modal-body'},
+          h('div',{style:{display:'flex',gap:2,marginBottom:10}},
+            ['file','url'].map(function(t){
+              return h('button',{key:t,onClick:function(){setInputType(t);},
+                style:{flex:1,padding:'7px',border:'1px solid '+(inputType===t?'#FFE600':'#1B6E3C'),
+                  background:inputType===t?'rgba(255,230,0,.08)':'transparent',
+                  color:inputType===t?'#FFE600':'#2EA55A',
+                  fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,
+                  textTransform:'uppercase',cursor:'pointer'}},
+                t==='file'?'Upload File':'Add URL'
+              );
+            })
+          ),
+          h('div',{style:{marginBottom:10}},h('label',null,'Title *'),h('input',{value:form.title,onChange:function(e){setF('title',e.target.value);},placeholder:'Document name'})),
+          inputType==='file'
+            ?h('div',{style:{marginBottom:10}},
+                h('label',null,'File *'),
+                h('div',{className:'upload-zone',onClick:function(){if(fileRef.current)fileRef.current.click();},
+                  style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:'1px dashed #1B6E3C',background:'rgba(27,110,60,.04)',cursor:'pointer'}},
+                  h('div',{style:{fontSize:24,flexShrink:0}},form.file?getFileIcon(form.file.name):'📁'),
+                  h('div',null,
+                    h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},form.file?form.file.name:'Tap to choose file'),
+                    h('div',{style:{fontSize:10,color:'#4A5568',marginTop:2}},'PDF, Word, Excel, Images, Video')
+                  )
+                ),
+                uploading&&h('div',{className:'prog-bar'},h('div',{className:'prog-bar-fill',style:{width:progress+'%'}})),
+                h('input',{ref:fileRef,type:'file',accept:'.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.mp4,.mov',style:{display:'none'},onChange:handleFileChange})
+              )
+            :h('div',{style:{marginBottom:10}},h('label',null,'URL *'),h('input',{value:form.url,onChange:function(e){setF('url',e.target.value);},placeholder:'https://...'})),
+          h('div',{className:'upload-modal-grid',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}},
+            h('div',null,h('label',null,'Description'),h('input',{value:form.desc,onChange:function(e){setF('desc',e.target.value);},placeholder:'Optional note'})),
+            h('div',null,h('label',null,'Team'),
+              h('select',{value:form.team,style:{display:'block',width:'100%'},onChange:function(e){setF('team',e.target.value);}},
+                TEAMS.map(function(t){return h('option',{key:t,value:t},t);})
+              )
+            )
+          ),
+          h('div',{className:'modal-footer',style:{marginTop:10,paddingTop:10}},
+            h('div',null),
+            h('div',{style:{display:'flex',gap:8}},
+              h('button',{className:'btn-g',onClick:function(){setShowForm(false);document.body.style.overflow='';}},'Cancel'),
+              h('button',{className:'btn-y',onClick:submit,disabled:uploading},uploading?'Uploading '+progress+'%...':'Upload')
+            )
+          )
+        )
+      )
+    ),
     // Search + Team filter
     h('div',{style:{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap',alignItems:'center'}},
       h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search docs...',className:'docs-search',style:{width:200,flexShrink:0}}),
@@ -1284,7 +1283,6 @@ function Docs(p){
         })
       )
     ),
-
     // Docs grid
     filtered.length===0
       ?h('div',{style:{textAlign:'center',padding:'60px 0'}},
@@ -1319,66 +1317,6 @@ function Docs(p){
             );
           })
         )
-  );
-}
-
-// ── Mobile Bar + Drawer ───────────────────────────────────────────────────────
-function MobileBar(p){
-  return h('div',{className:'mobile-bar',style:{display:'flex',alignItems:'center',padding:'12px 16px',background:'#0D1117',borderBottom:'2px solid #1B6E3C',position:'sticky',top:0,zIndex:40,gap:12}},
-    h('img',{src:LOGO,alt:'JC',onClick:function(){p.onDash&&p.onDash();},style:{width:32,height:32,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B',flexShrink:0,cursor:'pointer'}}),
-    h('span',{onClick:function(){p.onDash&&p.onDash();},style:{fontSize:16,fontWeight:700,color:'#F0EDE8',flex:1,cursor:'pointer'}},'Jelly Circle'),
-    p.overdueCount>0&&h('span',{style:{background:'#E8251F',color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:'Space Mono,monospace',fontWeight:700,flexShrink:0}},p.overdueCount+' OD'),
-    h('button',{className:'burger-btn',onClick:p.onOpen,style:{background:'none',border:'none',cursor:'pointer',padding:'6px',display:'flex',flexDirection:'column',gap:5,flexShrink:0}},
-      h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}}),
-      h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}}),
-      h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}})
-    )
-  );
-}
-
-function Drawer(p){
-  var nav=[
-    {id:'dashboard',label:'Dashboard',icon:'-'},
-    {id:'tasks',label:'Tasks',icon:'#',badge:p.overdueCount||0},
-    {id:'docs',label:'Docs',icon:'D'},
-    {id:'team',label:'Team',icon:'@'},
-  ];
-  var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===p.user.toLowerCase()){m=MEMBERS[i];break;}}
-  var firstName=p.user.split(' ')[0];
-  return h('div',null,
-    h('div',{className:'drawer-overlay'+(p.open?' open':''),onClick:p.onClose}),
-    h('div',{className:'drawer'+(p.open?' open':'')},
-      // Header — profile pic + Hi Name!
-      h('div',{style:{padding:'24px 20px 20px',borderBottom:'2px solid #1B6E3C',position:'relative',
-        background:m?'linear-gradient(135deg,'+m.color+'18 0%,rgba(13,17,23,0) 60%)':'rgba(27,110,60,.08)'}},
-        h('button',{onClick:p.onClose,style:{position:'absolute',top:14,right:14,background:'none',border:'none',cursor:'pointer',color:'#2EA55A',fontSize:22,lineHeight:1,padding:4}},'×'),
-        h('div',{style:{display:'flex',alignItems:'center',gap:14}},
-          h(Av,{m:m,sz:52,pics:p.pics,editable:true}),
-          h('div',{style:{display:'flex',flexDirection:'column',justifyContent:'center',gap:4}},
-            h('div',{style:{fontSize:19,fontWeight:700,color:'#F0EDE8',lineHeight:1.2}},'Hi, '+firstName+'!'),
-            h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.06em',whiteSpace:'nowrap'}},'Welcome to Teambase')
-          )
-        )
-      ),
-      // Nav
-      h('div',{style:{padding:'14px 12px',flex:1}},
-        h('div',{className:'mono',style:{fontSize:9,color:'#1B6E3C',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:10,paddingLeft:12}},'// Nav'),
-        nav.map(function(n){
-          return h('button',{key:n.id,
-            className:'nav-btn'+(p.page===n.id?' active':''),
-            style:{position:'relative'},
-            onClick:function(){p.setPage(n.id);p.onClose();}},
-            h('span',{className:'mono',style:{fontSize:13,color:p.page===n.id?'#FFE600':'#2EA55A'}},n.icon),
-            h('span',{style:{fontSize:13,fontWeight:p.page===n.id?700:400,color:p.page===n.id?'#F0EDE8':'#9CA3AF',textTransform:'uppercase',letterSpacing:'.05em'}},n.label),
-            n.badge>0&&h('span',{style:{marginLeft:'auto',background:'#E8251F',color:'#fff',padding:'1px 6px',fontSize:10,fontFamily:'Space Mono,monospace',fontWeight:700}},n.badge)
-          );
-        })
-      ),
-      // Sign out at bottom
-      h('div',{style:{padding:'16px 20px',borderTop:'2px solid #1B6E3C'}},
-        h('button',{onClick:p.onLogout,style:{width:'100%',background:'transparent',border:'1px solid #E8251F',color:'#E8251F',padding:'12px',fontFamily:'Space Mono,monospace',fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',cursor:'pointer'}},'Sign Out')
-      )
-    )
   );
 }
 
@@ -1430,7 +1368,6 @@ function App(){
   var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
   var s5=useState(null),modal=s5[0],setModalRaw=s5[1];
   var s12=useState(false),drawerOpen=s12[0],setDrawerOpen=s12[1];
-  var s13=useState(false),showUpload=s13[0],setShowUpload=s13[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
   var s7=useState(null),toast=s7[0],setToast=s7[1];
   var s8=useState(false),loaded=s8[0],setLoaded=s8[1];
@@ -1518,7 +1455,6 @@ function App(){
       )
     ),
     modal!==null&&h(TaskModal,{task:modal,onClose:function(){setModal(null);},onSave:saveTask,onDelete:deleteTask,user:user,saving:saving,pics:pics,canEdit:ce}),
-    showUpload&&h(UploadModal,{user:user,onClose:function(){setShowUpload(false);unlockScroll();}}),
     toast&&h(Toast,{msg:toast})
   );
 }
