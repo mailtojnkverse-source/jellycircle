@@ -185,6 +185,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .mobile-bar{display:none !important}
   .recent-card-desc{display:none !important}
   .recent-card{cursor:default}
+  .upload-modal{max-height:calc(100vh - 160px) !important}
 }
 
 /* Two-col grid */
@@ -1230,7 +1231,7 @@ function Docs(p){
     // Upload form modal
     showForm&&h('div',{className:'overlay docs-upload-overlay',onClick:function(e){if(e.target.className==='overlay docs-upload-overlay'){setShowForm(false);document.body.style.overflow='';}}},
       
-      h('div',{className:'modal'},
+      h('div',{className:'modal upload-modal'},
         h('div',{className:'modal-head'},
           h('span',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Upload Doc'),
           h('button',{onClick:function(){setShowForm(false);document.body.style.overflow='';},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
