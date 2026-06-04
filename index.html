@@ -77,7 +77,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 .cdot{display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;background:#FF3D8B;color:#0D1117;font-size:9px;font-weight:700;font-family:'Space Mono',monospace;min-width:16px;height:16px;padding:0 3px;-webkit-animation:pdot 2s ease infinite;animation:pdot 2s ease infinite}
 
 /* Modal */
-.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,17,23,.85);z-index:50;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start;-webkit-justify-content:center;justify-content:center;padding:60px 20px 20px}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,17,23,.85);z-index:50;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start;-webkit-justify-content:center;justify-content:center;padding:100px 20px 20px;overflow-y:auto}
 .modal{background:#161B22;border:2px solid #1B6E3C;width:100%;max-width:560px;max-height:80vh;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-box-sizing:border-box;box-sizing:border-box;margin:auto}
 .modal-body{-webkit-flex:1;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 20px 20px}
 
@@ -1479,8 +1479,8 @@ function App(){
   function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
   // Lock/unlock body scroll when modal opens/closes on mobile
-  function lockScroll(){if(window.innerWidth<=768){document.body.style.overflow='hidden';document.body.style.position='fixed';document.body.style.width='100%';}}
-  function unlockScroll(){document.body.style.overflow='';document.body.style.position='';document.body.style.width='';}
+  function lockScroll(){document.body.style.overflow='hidden';}
+  function unlockScroll(){document.body.style.overflow='';}
 
   function setModal(val){setModalRaw(val);if(val!==null){lockScroll();}else{unlockScroll();}}
   function openDrawer(){setDrawerOpen(true);if(window.innerWidth<=768){lockScroll();}}
