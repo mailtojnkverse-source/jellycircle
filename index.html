@@ -805,7 +805,7 @@ function Dashboard(p){
   var recent=[].concat(tasks).sort(function(a,b){return b.createdAt-a.createdAt;}).slice(0,5);
   var stats=[{l:'Total',v:total,cls:'sg',c:'#2EA55A'},{l:'Overdue',v:od,cls:'sr',c:'#E8251F'},{l:'This Wk',v:wk,cls:'sy',c:'#FFE600'},{l:'Done',v:done,cls:'sp',c:'#FF3D8B'}];
   return h('div',{className:'page fade-up'},
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24,flexWrap:'wrap',gap:12}},
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}},
       h('div',null,h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Overview'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Dashboard')),
       h('button',{className:'btn-y',onClick:p.onNew},'+ New Task')
     ),
@@ -901,7 +901,7 @@ function Tasks(p){
   var sortOpts=[{v:'createdAt',l:'Latest'},{v:'deadline',l:'Due Date'},{v:'title',l:'Name'}];
   var memOpts=[{v:'All People',l:'All People'}].concat(MEMBERS.map(function(m){return {v:m.name,l:m.name};}));
   return h('div',{className:'page fade-up'},
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,flexWrap:'wrap',gap:12}},
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}},
       h('div',null,h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Board'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Tasks ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']'))),
       h('button',{className:'btn-y',onClick:p.onNew},'+ New Task')
     ),
@@ -1160,7 +1160,7 @@ function Docs(p){
 
   return h('div',{className:'page fade-up'},
     // Header
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24,flexWrap:'wrap',gap:12}},
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}},
       h('div',null,
         h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
         h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']'))
