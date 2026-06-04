@@ -805,9 +805,12 @@ function Dashboard(p){
   var recent=[].concat(tasks).sort(function(a,b){return b.createdAt-a.createdAt;}).slice(0,5);
   var stats=[{l:'Total',v:total,cls:'sg',c:'#2EA55A'},{l:'Overdue',v:od,cls:'sr',c:'#E8251F'},{l:'This Wk',v:wk,cls:'sy',c:'#FFE600'},{l:'Done',v:done,cls:'sp',c:'#FF3D8B'}];
   return h('div',{className:'page fade-up'},
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}},
-      h('div',null,h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Overview'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Dashboard')),
-      h('button',{className:'btn-y',onClick:p.onNew},'+ New Task')
+    h('div',{style:{marginBottom:24}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Overview'),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
+        h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Dashboard'),
+        h('button',{className:'btn-y',onClick:p.onNew},'+ New Task')
+      )
     ),
     h('div',{className:'stat-grid'},stats.map(function(s){return h('div',{key:s.l,className:'stat-block '+s.cls},h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:8}},s.l),h('div',{className:'mono',style:{fontSize:36,fontWeight:700,color:s.c,lineHeight:1}},s.v));})),
     h('div',{className:'two-col'},
@@ -901,9 +904,12 @@ function Tasks(p){
   var sortOpts=[{v:'createdAt',l:'Latest'},{v:'deadline',l:'Due Date'},{v:'title',l:'Name'}];
   var memOpts=[{v:'All People',l:'All People'}].concat(MEMBERS.map(function(m){return {v:m.name,l:m.name};}));
   return h('div',{className:'page fade-up'},
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}},
-      h('div',null,h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Board'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Tasks ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']'))),
-      h('button',{className:'btn-y',onClick:p.onNew},'+ New Task')
+    h('div',{style:{marginBottom:20}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Board'),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
+        h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Tasks ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']')),
+        h('button',{className:'btn-y',onClick:p.onNew},'+ New Task')
+      )
     ),
     h('div',{className:'filter-row'},
       h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search...',style:{width:160,flexShrink:0}}),
@@ -1016,7 +1022,10 @@ function Team(p){
     return function(){clearInterval(iv);};
   },[]);
   return h('div',{className:'page fade-up'},
-    h('div',{style:{marginBottom:24}},h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Roster'),h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Team ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+MEMBERS.length+']'))),
+    h('div',{style:{marginBottom:24}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Roster'),
+      h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Team ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+MEMBERS.length+']'))
+    ),
     ['Business','Tech','Both'].map(function(team){
       var members=MEMBERS.filter(function(m){return m.team===team;});
       if(!members.length)return null;
@@ -1160,12 +1169,12 @@ function Docs(p){
 
   return h('div',{className:'page fade-up'},
     // Header
-    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24,flexWrap:'wrap',gap:12}},
-      h('div',null,
-        h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
-        h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']'))
-      ),
-      h('button',{className:'btn-y',onClick:function(){setShowForm(true);}},'+ Upload')
+    h('div',{style:{marginBottom:24}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
+        h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']')),
+        h('button',{className:'btn-y',onClick:function(){setShowForm(true);}},'+ Upload')
+      )
     ),
 
     // Search + Team filter
