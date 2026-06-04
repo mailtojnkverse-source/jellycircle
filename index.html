@@ -42,12 +42,9 @@ body{font-family:'Space Grotesk',sans-serif;background:#0D1117;color:#F0EDE8;min
 
 /* Cards */
 .card{background:#161B22;border:1px solid #1B6E3C}
-.task-card{background:#161B22;border:1px solid #1B6E3C;cursor:grab;-webkit-transition:all .15s;transition:all .15s;-webkit-user-select:none;user-select:none}
+.task-card{background:#161B22;border:1px solid #1B6E3C;cursor:pointer;-webkit-transition:all .15s;transition:all .15s}
 .task-card:hover{border-color:#FF3D8B;-webkit-transform:translateY(-2px);transform:translateY(-2px)}
-.task-card.dragging{opacity:.4;-webkit-transform:scale(.97);transform:scale(.97);cursor:grabbing}
-.task-card.drag-over-card{border-top:2px solid #FFE600}
 .overdue{border-color:#E8251F !important}
-.board-col.drag-over-col{background:rgba(255,230,0,.06);border-color:#FFE600}
 
 /* Buttons */
 .btn-y{background:#FFE600;color:#0D1117;border:none;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:.05em;-webkit-transition:all .15s;transition:all .15s}
@@ -811,14 +808,7 @@ function Tasks(p){
   var s5=useState('createdAt'),sortBy=s5[0],setSortBy=s5[1];
   var s6=useState(''),q=s6[0],setQ=s6[1];
   var s7=useState('All People'),mf=s7[0],setMf=s7[1];
-  // Drag state
-  var sDrag=useState(null),dragId=sDrag[0],setDragId=sDrag[1];
-  var sDragCol=useState(null),dragCol=sDragCol[0],setDragCol=sDragCol[1];
-  var sOverCol=useState(null),overCol=sOverCol[0],setOverCol=sOverCol[1];
-  var sOverCard=useState(null),overCard=sOverCard[0],setOverCard=sOverCard[1];
-  var sLocalOrder=useState({}),localOrder=sLocalOrder[0],setLocalOrder=sLocalOrder[1];
-  var dragRef=useRef(null);
-  var touchRef=useRef({});
+
   var po={High:0,Medium:1,Low:2};
   var filtered=[].concat(tasks).filter(function(t){
     if(tf!=='All'&&t.team!==tf)return false;
@@ -840,110 +830,6 @@ function Tasks(p){
     if(sortBy==='title')return a.title<b.title?-1:1;
     return b.createdAt-a.createdAt;
   });
-  // ── Drag handlers ──────────────────────────────────────────────────────────
-  function onDragStart(e, taskId, fromCol){
-    setDragId(taskId); setDragCol(fromCol);
-    dragRef.current=taskId;
-    if(e.dataTransfer){e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',taskId);}
-  }
-  function onDragEnd(){
-    setDragId(null); setDragCol(null); setOverCol(null); setOverCard(null);
-    dragRef.current=null;
-  }
-  function onColDragOver(e, col){
-    e.preventDefault();
-    if(e.dataTransfer) e.dataTransfer.dropEffect='move';
-    setOverCol(col);
-  }
-  function onColDrop(e, toStatus){
-    e.preventDefault();
-    var id=dragRef.current||(e.dataTransfer&&e.dataTransfer.getData('text/plain'));
-    if(!id||!toStatus) return;
-    // Find the task and update status
-    var task=null;
-    for(var i=0;i<p.tasks.length;i++){if(p.tasks[i].id===id){task=p.tasks[i];break;}}
-    if(task&&task.status!==toStatus){
-      var updated=Object.assign({},task,{status:toStatus});
-      fbUpd(updated).catch(function(e){console.error('drag update:',e);});
-    }
-    setDragId(null); setDragCol(null); setOverCol(null); setOverCard(null);
-    dragRef.current=null;
-  }
-  function onCardDragOver(e, cardId){
-    e.preventDefault(); e.stopPropagation();
-    setOverCard(cardId);
-  }
-  function onCardDrop(e, toCardId, colStatus){
-    e.preventDefault(); e.stopPropagation();
-    var id=dragRef.current;
-    if(!id||id===toCardId) return;
-    // Reorder within same column
-    var newOrder=Object.assign({},localOrder);
-    var colKey=colStatus;
-    var colIds=newOrder[colKey]?newOrder[colKey].slice():
-      p.tasks.filter(function(t){
-        if(colStatus==='unassigned') return !t.assignedTo&&t.status==='To Do';
-        if(colStatus==='To Do') return t.status==='To Do'&&t.assignedTo;
-        return t.status===colStatus;
-      }).map(function(t){return t.id;});
-    var fromIdx=colIds.indexOf(id);
-    var toIdx=colIds.indexOf(toCardId);
-    if(fromIdx>-1) colIds.splice(fromIdx,1);
-    if(toIdx>-1) colIds.splice(toIdx,0,id); else colIds.push(id);
-    newOrder[colKey]=colIds;
-    setLocalOrder(newOrder);
-    setOverCard(null);
-  }
-  // Touch drag support for iPad/iPhone
-  function onTouchStart(e, taskId, fromCol){
-    touchRef.current={id:taskId,col:fromCol,startX:e.touches[0].clientX,startY:e.touches[0].clientY,moved:false};
-    setDragId(taskId); setDragCol(fromCol); dragRef.current=taskId;
-  }
-  function onTouchMove(e){
-    var t=touchRef.current;
-    if(!t.id) return;
-    t.moved=true;
-    var x=e.touches[0].clientX, y=e.touches[0].clientY;
-    // Find which column is under the touch
-    var el=document.elementFromPoint(x,y);
-    while(el&&!el.dataset.colstatus) el=el.parentElement;
-    if(el&&el.dataset.colstatus) setOverCol(el.dataset.colstatus);
-  }
-  function onTouchEnd(e){
-    var t=touchRef.current;
-    if(!t.id){return;}
-    var x=e.changedTouches[0].clientX, y=e.changedTouches[0].clientY;
-    var el=document.elementFromPoint(x,y);
-    while(el&&!el.dataset.colstatus) el=el.parentElement;
-    if(el&&el.dataset.colstatus&&t.moved){
-      var toStatus=el.dataset.colstatus;
-      if(toStatus!=='unassigned'){
-        var task=null;
-        for(var i=0;i<p.tasks.length;i++){if(p.tasks[i].id===t.id){task=p.tasks[i];break;}}
-        if(task&&task.status!==toStatus){
-          var updated=Object.assign({},task,{status:toStatus});
-          fbUpd(updated).catch(function(err){console.error('touch drag:',err);});
-        }
-      }
-    }
-    touchRef.current={};
-    setDragId(null); setDragCol(null); setOverCol(null); setOverCard(null);
-    dragRef.current=null;
-  }
-
-  function getSortedCol(colStatus){
-    var base;
-    if(colStatus==='unassigned') base=filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';});
-    else if(colStatus==='To Do') base=filtered.filter(function(t){return t.status==='To Do'&&t.assignedTo;});
-    else base=filtered.filter(function(t){return t.status===colStatus;});
-    var order=localOrder[colStatus];
-    if(!order) return base;
-    return base.slice().sort(function(a,b){
-      var ai=order.indexOf(a.id),bi=order.indexOf(b.id);
-      if(ai===-1) return 1; if(bi===-1) return -1; return ai-bi;
-    });
-  }
-
   var teamOpts=[{v:'All',l:'All Teams'},{v:'Business',l:'Business'},{v:'Tech',l:'Tech'},{v:'Both',l:'Both'}];
   var statOpts=[{v:'All',l:'All Statuses'}].concat(STATUSES.map(function(s){return {v:s,l:s};}));
   var priOpts=[{v:'All Priority',l:'All Priorities'},{v:'High',l:'High'},{v:'Medium',l:'Medium'},{v:'Low',l:'Low'}];
@@ -969,13 +855,7 @@ function Tasks(p){
     ),
     h('div',{className:'board'},
       // Unassigned column (virtual - shows To Do tasks with no assignee)
-      h('div',{key:'unassigned',className:'board-col'+(overCol==='unassigned'?' drag-over-col':''),
-        style:{borderTop:'3px solid #FF3D8B'},
-        'data-colstatus':'unassigned',
-        onDragOver:function(e){onColDragOver(e,'unassigned');},
-        onDrop:function(e){onColDrop(e,'To Do');},
-        onDragLeave:function(){setOverCol(null);}
-      },
+      h('div',{key:'unassigned',className:'board-col',style:{borderTop:'3px solid #FF3D8B'}},
         h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,paddingBottom:10,borderBottom:'1px solid #1B6E3C'}},
           h('span',{className:'mono',style:{fontSize:11,color:'#FF3D8B',textTransform:'uppercase',letterSpacing:'.08em'}},'? Unassigned'),
           h('span',{style:{marginLeft:'auto',background:'rgba(255,61,139,.2)',color:'#FF3D8B',border:'1px solid rgba(255,61,139,.4)',padding:'1px 8px',fontSize:10,fontFamily:'Space Mono,monospace',fontWeight:700}},
@@ -983,21 +863,9 @@ function Tasks(p){
           )
         ),
         h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
-          getSortedCol('unassigned').map(function(t,i){
+          filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).map(function(t,i){
             var odd=isOD(t.deadline),cc=t.comments?t.comments.length:0;
-            return h('div',{key:t.id,
-              className:'task-card'+(odd?' overdue':'')+(dragId===t.id?' dragging':'')+(overCard===t.id?' drag-over-card':''),
-              style:{padding:14,marginBottom:2,borderLeft:'3px solid #FF3D8B'},
-              draggable:true,
-              onDragStart:function(e){onDragStart(e,t.id,'unassigned');},
-              onDragEnd:onDragEnd,
-              onDragOver:function(e){onCardDragOver(e,t.id);},
-              onDrop:function(e){onCardDrop(e,t.id,'unassigned');},
-              onTouchStart:function(e){onTouchStart(e,t.id,'unassigned');},
-              onTouchMove:onTouchMove,
-              onTouchEnd:onTouchEnd,
-              onClick:function(){if(!touchRef.current.moved) p.onEdit(t);}
-            },
+            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2,borderLeft:'3px solid #FF3D8B'},onClick:function(){p.onEdit(t);}},
               h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},
                 h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})
               ),
@@ -1025,32 +893,21 @@ function Tasks(p){
       ),
       STATUSES.map(function(status){
         var sc=STA[status];
-        return h('div',{key:status,
-          className:'board-col'+(overCol===status?' drag-over-col':''),
-          'data-colstatus':status,
-          onDragOver:function(e){onColDragOver(e,status);},
-          onDrop:function(e){onColDrop(e,status);},
-          onDragLeave:function(){setOverCol(null);}
-        },
+        var col=filtered.filter(function(t){
+          if(status==='To Do') return t.status===status&&t.assignedTo;
+          return t.status===status;
+        });
+        return h('div',{key:status,className:'board-col'},
           h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,paddingBottom:10,borderBottom:'1px solid #1B6E3C'}},
             h('span',{className:'mono',style:{fontSize:11,color:sc.c,textTransform:'uppercase',letterSpacing:'.08em'}},sc.i+' '+status),
             h('span',{style:{marginLeft:'auto',background:sc.c+'20',color:sc.c,border:'1px solid '+sc.c+'44',padding:'1px 8px',fontSize:10,fontFamily:'Space Mono,monospace',fontWeight:700}},col.length)
           ),
-          getSortedCol(status).map(function(t,i){
+          filtered.filter(function(t){
+              if(status==='To Do') return t.status===status&&t.assignedTo;
+              return t.status===status;
+            }).map(function(t,i){
             var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline),cc=t.comments?t.comments.length:0;
-            return h('div',{key:t.id,
-              className:'task-card'+(odd?' overdue':'')+(dragId===t.id?' dragging':'')+(overCard===t.id?' drag-over-card':''),
-              style:{padding:14,marginBottom:2},
-              draggable:true,
-              onDragStart:function(e){onDragStart(e,t.id,status);},
-              onDragEnd:onDragEnd,
-              onDragOver:function(e){onCardDragOver(e,t.id);},
-              onDrop:function(e){onCardDrop(e,t.id,status);},
-              onTouchStart:function(e){onTouchStart(e,t.id,status);},
-              onTouchMove:onTouchMove,
-              onTouchEnd:onTouchEnd,
-              onClick:function(e){if(!touchRef.current.moved) p.onEdit(t);}
-            },
+            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2},onClick:function(){p.onEdit(t);}},
               h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})),
               h('div',{style:{fontWeight:600,fontSize:14,color:'#F0EDE8',marginBottom:6,lineHeight:1.4}},t.title),
               t.description&&h('p',{style:{fontSize:12,color:'#6B7280',margin:'0 0 10px',lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}},t.description),
@@ -1078,7 +935,7 @@ function Tasks(p){
               )
             );
           }),
-          getSortedCol(status).length===0&&h('div',{className:'mono',style:{textAlign:'center',padding:'24px 0',color:'#1B6E3C',fontSize:11,border:'1px dashed #1B6E3C'}},'// empty')
+          filtered.filter(function(t){if(status==='To Do')return t.status===status&&t.assignedTo;return t.status===status;}).length===0&&h('div',{className:'mono',style:{textAlign:'center',padding:'24px 0',color:'#1B6E3C',fontSize:11,border:'1px dashed #1B6E3C'}},'// empty')
         );
       })
     )
