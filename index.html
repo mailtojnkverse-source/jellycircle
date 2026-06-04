@@ -116,6 +116,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
 
 /* Avatar */
 .av-wrap{position:relative;overflow:hidden;-webkit-flex-shrink:0;flex-shrink:0}
+.drawer .av-wrap,.drawer .av-wrap img,.drawer .av-wrap div{border-radius:50% !important}
 .av-over{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.72);display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;opacity:0;-webkit-transition:opacity .15s;transition:opacity .15s;font-size:8px;color:#FFE600;font-family:'Space Mono',monospace;text-align:center;line-height:1.4}
 .av-wrap:hover .av-over{opacity:1}
 
@@ -1448,6 +1449,8 @@ function App(){
   function unlockScroll(){document.body.style.overflow='';document.body.style.position='';document.body.style.width='';}
 
   function setModal(val){setModalRaw(val);if(val!==null){lockScroll();}else{unlockScroll();}}
+  function openDrawer(){setDrawerOpen(true);if(window.innerWidth<=768){lockScroll();}}
+  function closeDrawer(){setDrawerOpen(false);unlockScroll();}
 
   function saveTask(task){
     setSaving(true);
@@ -1471,9 +1474,9 @@ function App(){
   var ce=canEdit(user,modal);
   return h('div',{className:'app-wrap'},
     h(Sidebar,{page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics}),
-    h(Drawer,{open:drawerOpen,onClose:function(){setDrawerOpen(false);},page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
+    h(Drawer,{open:drawerOpen,onClose:closeDrawer,page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
     h('div',{className:'main-col'},
-      h(MobileBar,{onOpen:function(){setDrawerOpen(true);},overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
+      h(MobileBar,{onOpen:openDrawer,overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
       h(Ticker,{tasks:tasks}),
       h('div',{className:'main-scroll'},
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
