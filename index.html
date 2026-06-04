@@ -151,8 +151,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .team-grid{-webkit-flex-direction:column;flex-direction:column}
   .team-card{width:100%}
   .filter-row{gap:6px}
-  .overlay{padding:0;-webkit-align-items:flex-end;align-items:flex-end;background:rgba(0,0,0,.6)}
-  .overlay{padding:20px 16px !important;-webkit-align-items:center !important;align-items:center !important;background:rgba(0,0,0,.75) !important}
+  .overlay{padding:20px 16px;-webkit-align-items:center;align-items:center;background:rgba(0,0,0,.75)}
   .modal{width:calc(100% - 32px) !important;max-width:calc(100% - 32px) !important;max-height:80vh;border:2px solid #1B6E3C !important;border-top:3px solid #FF3D8B !important;border-radius:4px;overflow-y:auto;-webkit-overflow-scrolling:touch}
   .modal-head{padding:10px 14px}
   .modal-body{padding:12px 14px 16px}
@@ -168,33 +167,9 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .ticker-item{padding:0 16px;font-size:9px}
   /* Docs search full width on mobile */
   .docs-search{width:100% !important;flex:1 1 100% !important}
-  /* Upload modal — stack fields, centered on mobile */
-.upload-modal-grid{grid-template-columns:1fr !important}
+  /* Upload modal mobile */
+  .upload-modal-grid{grid-template-columns:1fr !important}
 
-.docs-overlay{
-  -webkit-align-items:flex-start !important;
-  align-items:flex-start !important;
-  -webkit-justify-content:center !important;
-  justify-content:center !important;
-  overflow-y:auto !important;
-  overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch !important;
-  padding:20px 16px 40px !important;
-}
-
-.docs-overlay .modal{
-  margin:0 auto !important;
-  height:auto !important;
-  max-height:none !important;
-  overflow:visible !important;
-}
-
-.docs-overlay .modal-body{
-  overflow:visible !important;
-  max-height:none !important;
-  padding:10px 12px !important;
-
-}
   /* Recent activity cards on mobile — expand on tap */
   .recent-card{cursor:pointer;-webkit-transition:background .15s;transition:background .15s}
   .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:unset !important}
@@ -332,48 +307,6 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .board-col{padding:10px}
   .two-col{gap:10px}
   .filter-row{gap:6px}
-}
-  @media(max-width:768px){
-  .docs-overlay{
-    position:fixed !important;
-    inset:0 !important;
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    padding:8px !important;
-    overflow:hidden !important;
-  }
-
-  .docs-overlay .modal{
-    width:calc(100vw - 16px) !important;
-    max-width:calc(100vw - 16px) !important;
-    height:auto !important;
-    max-height:calc(100svh - 16px) !important;
-    display:flex !important;
-    flex-direction:column !important;
-    overflow:hidden !important;
-  }
-
-  .docs-overlay .modal-body{
-    flex:1 1 auto !important;
-    min-height:0 !important;
-    overflow-y:auto !important;
-    -webkit-overflow-scrolling:touch !important;
-    padding:8px 10px 10px !important;
-  }
-
-  .docs-overlay .modal-head{
-    flex-shrink:0 !important;
-  }
-
-  .docs-overlay .modal-footer{
-    position:sticky !important;
-    bottom:0 !important;
-    background:#161B22 !important;
-    padding-top:8px !important;
-    margin-top:8px !important;
-  }
-}
 }
 </style>
 </head>
