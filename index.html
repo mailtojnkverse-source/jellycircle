@@ -168,8 +168,9 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .ticker-item{padding:0 16px;font-size:9px}
   /* Docs search full width on mobile */
   .docs-search{width:100% !important;flex:1 1 100% !important}
-  /* Upload modal — stack fields, no scroll */
+  /* Upload modal — stack fields, scrollable overlay */
   .upload-modal-grid{grid-template-columns:1fr !important}
+  .docs-overlay{-webkit-align-items:flex-start !important;align-items:flex-start !important;overflow-y:auto !important;padding-top:20px !important;padding-bottom:20px !important}
   /* Recent activity cards on mobile — expand on tap */
   .recent-card{cursor:pointer;-webkit-transition:background .15s;transition:background .15s}
   .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:unset !important}
@@ -1225,7 +1226,7 @@ function Docs(p){
     ),
 
     // Upload form modal
-    showForm&&h('div',{className:'overlay',onClick:function(e){if(e.target.className==='overlay'){setShowForm(false);document.body.style.overflow='';}}},
+    showForm&&h('div',{className:'overlay docs-overlay',onClick:function(e){if(e.target.className==='overlay docs-overlay'){setShowForm(false);document.body.style.overflow='';}}},
       
       h('div',{className:'modal'},
         h('div',{className:'modal-head'},
