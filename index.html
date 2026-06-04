@@ -340,15 +340,33 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .docs-overlay .modal{
     width:calc(100vw - 16px) !important;
     max-width:calc(100vw - 16px) !important;
-    max-height:calc(100dvh - 16px) !important;
     height:auto !important;
+    max-height:calc(100svh - 16px) !important;
+    display:flex !important;
+    flex-direction:column !important;
     overflow:hidden !important;
   }
 
   .docs-overlay .modal-body{
-    padding:8px 10px !important;
-    overflow:hidden !important;
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch !important;
+    padding:8px 10px 10px !important;
   }
+
+  .docs-overlay .modal-head{
+    flex-shrink:0 !important;
+  }
+
+  .docs-overlay .modal-footer{
+    position:sticky !important;
+    bottom:0 !important;
+    background:#161B22 !important;
+    padding-top:8px !important;
+    margin-top:8px !important;
+  }
+}
 }
 </style>
 </head>
