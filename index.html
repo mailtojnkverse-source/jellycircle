@@ -1313,17 +1313,20 @@ function Drawer(p){
     {id:'team',label:'Team',icon:'@'},
   ];
   var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===p.user.toLowerCase()){m=MEMBERS[i];break;}}
+  var firstName=p.user.split(' ')[0];
   return h('div',null,
     h('div',{className:'drawer-overlay'+(p.open?' open':''),onClick:p.onClose}),
     h('div',{className:'drawer'+(p.open?' open':'')},
-      // Header
-      h('div',{style:{padding:'20px 20px 16px',borderBottom:'2px solid #1B6E3C',display:'flex',alignItems:'center',gap:10}},
-        h('img',{src:LOGO,alt:'JC',style:{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B'}}),
-        h('div',null,
-          h('div',{style:{fontSize:15,fontWeight:700,color:'#F0EDE8'}},'Jelly Circle'),
-          h('div',{className:'mono',style:{fontSize:8,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.1em'}},'Teambase')
-        ),
-        h('button',{onClick:p.onClose,style:{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'#2EA55A',fontSize:20,lineHeight:1,padding:4}},'×')
+      // Header — profile pic + Hi Name!
+      h('div',{style:{padding:'24px 20px 20px',borderBottom:'2px solid #1B6E3C',position:'relative'}},
+        h('button',{onClick:p.onClose,style:{position:'absolute',top:14,right:14,background:'none',border:'none',cursor:'pointer',color:'#2EA55A',fontSize:22,lineHeight:1,padding:4}},'×'),
+        h('div',{style:{display:'flex',flexDirection:'column',alignItems:'flex-start',gap:10}},
+          h(Av,{m:m,sz:52,pics:p.pics,editable:true}),
+          h('div',null,
+            h('div',{style:{fontSize:20,fontWeight:700,color:'#F0EDE8',marginBottom:3}},'Hi, '+firstName+'!'),
+            h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',textTransform:'uppercase',letterSpacing:'.08em'}},'Welcome to the Teambase')
+          )
+        )
       ),
       // Nav
       h('div',{style:{padding:'14px 12px',flex:1}},
@@ -1339,16 +1342,9 @@ function Drawer(p){
           );
         })
       ),
-      // User
-      h('div',{style:{borderTop:'2px solid #1B6E3C',padding:'14px 12px'}},
-        h('div',{style:{display:'flex',alignItems:'center',gap:8,padding:'10px 12px',background:'rgba(27,110,60,.15)',border:'1px solid #1B6E3C'}},
-          h(Av,{m:m,sz:28,pics:p.pics,editable:true}),
-          h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{fontSize:12,fontWeight:600,color:'#F0EDE8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},p.user),
-            h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',textTransform:'uppercase'}},'Online')
-          ),
-          h('button',{className:'sign-out',onClick:p.onLogout},'Sign Out')
-        )
+      // Sign out at bottom
+      h('div',{style:{padding:'16px 20px',borderTop:'2px solid #1B6E3C'}},
+        h('button',{onClick:p.onLogout,style:{width:'100%',background:'transparent',border:'1px solid #E8251F',color:'#E8251F',padding:'12px',fontFamily:'Space Mono,monospace',fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'.08em',cursor:'pointer'}},'Sign Out')
       )
     )
   );
