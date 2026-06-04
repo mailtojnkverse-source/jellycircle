@@ -151,7 +151,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .team-card{width:100%}
   .filter-row{gap:6px}
   .overlay{padding:0;-webkit-align-items:flex-end;align-items:flex-end;background:rgba(0,0,0,.6)}
-  .modal{width:100%;max-width:100%;max-height:88vh;border-top:3px solid #FF3D8B;border-left:none;border-right:none;border-bottom:none}
+  .modal{width:100%;max-width:100%;max-height:88vh;border:2px solid #1B6E3C;border-top:3px solid #FF3D8B;border-bottom:none;border-radius:0}
   .modal-body{padding:14px 16px 20px}
   .ticker-item{padding:0 16px;font-size:9px}
 }
@@ -781,7 +781,7 @@ function TaskModal(p){
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function Dashboard(p){
-  var tasks=p.tasks,pics=p.pics||{};
+  var tasks=p.tasks,pics=p.pics||{},onEdit=p.onEdit||function(){};
   var total=tasks.length;
   var done=tasks.filter(function(t){return t.status==='Done';}).length;
   var od=tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length;
@@ -824,7 +824,7 @@ function Dashboard(p){
     h('div',{className:'card',style:{padding:20}},
       h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:14}},'// Recent Activity'),
       recent.length===0&&h('p',{className:'mono',style:{color:'#2EA55A',fontSize:12,textAlign:'center',padding:'20px 0'}},'// No tasks yet'),
-      recent.map(function(t){var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline);return h('div',{key:t.id,style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',marginBottom:2,background:odd?'rgba(232,37,31,.05)':'rgba(27,110,60,.04)',border:'1px solid '+(odd?'rgba(232,37,31,.25)':'#1B6E3C')}},h(Av,{m:m,sz:30,pics:pics}),h('div',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:14,fontWeight:600,color:'#F0EDE8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},t.title),h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},(m?m.name:'Unassigned')+' · '+t.team)),h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0}},h(SBadge,{s:t.status}),odd&&h('span',{className:'mono',style:{fontSize:9,color:'#E8251F',fontWeight:700}},'OVERDUE')));})
+      recent.map(function(t){var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline);return h('div',{key:t.id,onClick:function(){onEdit(t);},style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',marginBottom:2,cursor:'pointer',background:odd?'rgba(232,37,31,.05)':'rgba(27,110,60,.04)',border:'1px solid '+(odd?'rgba(232,37,31,.25)':'#1B6E3C')}},h(Av,{m:m,sz:30,pics:pics}),h('div',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:14,fontWeight:600,color:'#F0EDE8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},t.title),h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},(m?m.name:'Unassigned')+' · '+t.team)),h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0}},h(SBadge,{s:t.status}),odd&&h('span',{className:'mono',style:{fontSize:9,color:'#E8251F',fontWeight:700}},'OVERDUE')));})
     )
   );
 }
@@ -896,7 +896,7 @@ function Tasks(p){
         h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
           filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).map(function(t,i){
             var odd=isOD(t.deadline),cc=t.comments?t.comments.length:0;
-            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2,borderLeft:'3px solid #FF3D8B'},onClick:function(){p.onEdit(t);}},
+            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2,borderLeft:'3px solid #FF3D8B'},onClick:function(){onEdit(t);}},
               h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},
                 h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})
               ),
@@ -938,7 +938,7 @@ function Tasks(p){
               return t.status===status;
             }).map(function(t,i){
             var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline),cc=t.comments?t.comments.length:0;
-            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2},onClick:function(){p.onEdit(t);}},
+            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2},onClick:function(){onEdit(t);}},
               h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})),
               h('div',{style:{fontWeight:600,fontSize:14,color:'#F0EDE8',marginBottom:6,lineHeight:1.4}},t.title),
               t.description&&h('p',{style:{fontSize:12,color:'#6B7280',margin:'0 0 10px',lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}},t.description),
@@ -1249,17 +1249,15 @@ function Docs(p){
 
 // ── Mobile Bar + Drawer ───────────────────────────────────────────────────────
 function MobileBar(p){
-  return h('div',{className:'mobile-bar'},
-    h('button',{className:'burger-btn',onClick:p.onOpen},
-      h('span',{className:'burger-line'}),
-      h('span',{className:'burger-line'}),
-      h('span',{className:'burger-line'})
+  return h('div',{className:'mobile-bar',style:{display:'flex',alignItems:'center',padding:'12px 16px',background:'#0D1117',borderBottom:'2px solid #1B6E3C',position:'sticky',top:0,zIndex:40,gap:12}},
+    h('button',{className:'burger-btn',onClick:p.onOpen,style:{background:'none',border:'none',cursor:'pointer',padding:'6px',display:'flex',flexDirection:'column',gap:5,flexShrink:0}},
+      h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}}),
+      h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}}),
+      h('span',{style:{width:24,height:2,background:'#2EA55A',display:'block'}})
     ),
-    h('div',{style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
-      h('img',{src:LOGO,alt:'JC',style:{width:28,height:28,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B'}}),
-      h('span',{style:{fontSize:15,fontWeight:700,color:'#F0EDE8'}},'Jelly Circle')
-    ),
-    p.overdueCount>0&&h('span',{style:{background:'#E8251F',color:'#fff',padding:'2px 7px',fontSize:10,fontFamily:'Space Mono,monospace',fontWeight:700}},p.overdueCount)
+    h('img',{src:LOGO,alt:'JC',style:{width:32,height:32,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B',flexShrink:0}}),
+    h('span',{style:{fontSize:16,fontWeight:700,color:'#F0EDE8',flex:1}},'Jelly Circle'),
+    p.overdueCount>0&&h('span',{style:{background:'#E8251F',color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:'Space Mono,monospace',fontWeight:700,flexShrink:0}},p.overdueCount+' OD')
   );
 }
 
@@ -1432,7 +1430,7 @@ function App(){
       h(MobileBar,{onOpen:function(){setDrawerOpen(true);},overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
       h(Ticker,{tasks:tasks}),
       h('div',{className:'main-scroll'},
-        page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
+        page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
         page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,profiles:profiles}),
         page==='docs'&&h(Docs,{docs:docs,user:user})
