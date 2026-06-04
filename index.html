@@ -1205,7 +1205,7 @@ function Docs(p){
       h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
         h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']')),
-        h('button',{className:'btn-y',onClick:function(){setShowForm(true);if(window.innerWidth<=768){document.body.style.overflow='hidden';document.body.style.position='fixed';document.body.style.width='100%';}}},'+ Upload')
+        h('button',{className:'btn-y',onClick:function(){setShowForm(true);if(window.innerWidth<=768){document.body.style.overflow='hidden';}}},'+ Upload')
       )
     ),
 
@@ -1225,11 +1225,12 @@ function Docs(p){
     ),
 
     // Upload form modal
-    showForm&&h('div',{className:'overlay',onClick:function(e){if(e.target.className==='overlay')setShowForm(false);}},
+    showForm&&h('div',{className:'overlay',onClick:function(e){if(e.target.className==='overlay'){setShowForm(false);document.body.style.overflow='';}}},
+      
       h('div',{className:'modal'},
         h('div',{className:'modal-head'},
           h('span',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Upload Doc'),
-          h('button',{onClick:function(){setShowForm(false);document.body.style.overflow='';document.body.style.position='';document.body.style.width='';},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
+          h('button',{onClick:function(){setShowForm(false);document.body.style.overflow='';},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
         ),
         h('div',{className:'modal-body'},
           // Type toggle
@@ -1276,7 +1277,7 @@ function Docs(p){
           h('div',{className:'modal-footer',style:{marginTop:10,paddingTop:10}},
             h('div',null),
             h('div',{style:{display:'flex',gap:8}},
-              h('button',{className:'btn-g',onClick:function(){setShowForm(false);document.body.style.overflow='';document.body.style.position='';document.body.style.width='';}},'Cancel'),
+              h('button',{className:'btn-g',onClick:function(){setShowForm(false);document.body.style.overflow='';}},'Cancel'),
               h('button',{className:'btn-y',onClick:submit,disabled:uploading},uploading?'Uploading '+progress+'%...':'Upload')
             )
           )
