@@ -1366,6 +1366,7 @@ function Drawer(p){
     {id:'tasks',label:'Tasks',icon:'#',badge:p.overdueCount||0},
     {id:'docs',label:'Docs',icon:'D'},
     {id:'team',label:'Team',icon:'@'},
+    {id:'schedule',label:'Schedule',icon:'T'},
   ];
   var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===p.user.toLowerCase()){m=MEMBERS[i];break;}}
   var firstName=p.user.split(' ')[0];
