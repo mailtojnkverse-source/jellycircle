@@ -1420,7 +1420,7 @@ function Schedule(p){
   useEffect(function(){
     try{
       var s=localStorage.getItem('jc_tzlist');
-      if(s){var p=JSON.parse(s);if(Array.isArray(p))setTZList(p);}
+      if(s){var parsed=JSON.parse(s);if(Array.isArray(parsed))setTZList(parsed);}
     }catch(e){}
   },[]);
 
@@ -1475,11 +1475,60 @@ function Schedule(p){
       h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Timezone Table'),
       h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8',marginBottom:16}},'Schedule')
     ),
-    h('div',{style:{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}},
-      h('input',{value:newTZ,onChange:function(e){setNewTZ(e.target.value);},
-        placeholder:'e.g. America/New_York',style:{flex:1,minWidth:180},
-        onKeyDown:function(e){if(e.key==='Enter')addTZ();}}),
-      h('button',{className:'btn-y',onClick:addTZ},'+ Add')
+    h('div',{style:{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap',alignItems:'center'}},
+      h('div',{style:{flex:1,minWidth:0,position:'relative'}},
+        h('select',{
+          value:newTZ,
+          onChange:function(e){setNewTZ(e.target.value);},
+          style:{width:'100%',display:'block',padding:'10px 28px 10px 12px',border:'1px solid #2EA55A',background:'#0D1117',color:newTZ?'#F0EDE8':'#4A5568',fontFamily:'Space Grotesk,sans-serif',fontSize:13,cursor:'pointer',WebkitAppearance:'none',appearance:'none',outline:'none',boxSizing:'border-box'}
+        },
+          h('option',{value:''},'— Select a timezone —'),
+          [
+            ['UTC','UTC — Universal Time'],
+            ['Africa/Cairo','Cairo (GMT+2)'],
+            ['Africa/Johannesburg','Johannesburg (GMT+2)'],
+            ['Africa/Lagos','Lagos (GMT+1)'],
+            ['Africa/Nairobi','Nairobi (GMT+3)'],
+            ['America/Chicago','Chicago (GMT-6)'],
+            ['America/Denver','Denver (GMT-7)'],
+            ['America/Los_Angeles','Los Angeles (GMT-8)'],
+            ['America/Mexico_City','Mexico City (GMT-6)'],
+            ['America/New_York','New York (GMT-5)'],
+            ['America/Sao_Paulo','São Paulo (GMT-3)'],
+            ['America/Toronto','Toronto (GMT-5)'],
+            ['America/Vancouver','Vancouver (GMT-8)'],
+            ['Asia/Bangkok','Bangkok (GMT+7)'],
+            ['Asia/Colombo','Colombo (GMT+5:30)'],
+            ['Asia/Dubai','Dubai (GMT+4)'],
+            ['Asia/Hong_Kong','Hong Kong (GMT+8)'],
+            ['Asia/Jakarta','Jakarta (GMT+7)'],
+            ['Asia/Karachi','Karachi (GMT+5)'],
+            ['Asia/Kolkata','Mumbai / Delhi (GMT+5:30)'],
+            ['Asia/Kuala_Lumpur','Kuala Lumpur (GMT+8)'],
+            ['Asia/Manila','Manila (GMT+8)'],
+            ['Asia/Seoul','Seoul (GMT+9)'],
+            ['Asia/Shanghai','Shanghai (GMT+8)'],
+            ['Asia/Singapore','Singapore (GMT+8)'],
+            ['Asia/Taipei','Taipei (GMT+8)'],
+            ['Asia/Tokyo','Tokyo (GMT+9)'],
+            ['Australia/Melbourne','Melbourne (GMT+11)'],
+            ['Australia/Sydney','Sydney (GMT+11)'],
+            ['Europe/Amsterdam','Amsterdam (GMT+1)'],
+            ['Europe/Berlin','Berlin (GMT+1)'],
+            ['Europe/Dublin','Dublin (GMT+0)'],
+            ['Europe/Istanbul','Istanbul (GMT+3)'],
+            ['Europe/London','London (GMT+0)'],
+            ['Europe/Madrid','Madrid (GMT+1)'],
+            ['Europe/Moscow','Moscow (GMT+3)'],
+            ['Europe/Paris','Paris (GMT+1)'],
+            ['Europe/Rome','Rome (GMT+1)'],
+            ['Pacific/Auckland','Auckland (GMT+13)'],
+            ['Pacific/Honolulu','Honolulu (GMT-10)'],
+          ].map(function(tz){return h('option',{key:tz[0],value:tz[0]},tz[1]);})
+        ),
+        h('span',{style:{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',WebkitTransform:'translateY(-50%)',pointerEvents:'none',color:'#2EA55A',fontSize:10,fontFamily:'Space Mono,monospace'}},'v')
+      ),
+      h('button',{className:'btn-y',onClick:addTZ,style:{flexShrink:0}},'+ Add')
     ),
     tzList.length===0&&h('div',{className:'mono',style:{color:'#4A5568',fontSize:12,padding:'20px 0',textAlign:'center'}},'// Add timezones to compare'),
     tzList.length>0&&h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch'}},
@@ -1737,7 +1786,7 @@ function App(){
     });
     var u2=fbSubPics(function(pp){setPics(pp);});
     var u3=fbSubDocs(function(d){setDocs(d);});
-    return function(){u1();u2();u3();};
+    return function(){u1();u2();u3();if(u4)u4();if(u5)u5();if(u6)u6();};
   },[fbReady,user]);
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
