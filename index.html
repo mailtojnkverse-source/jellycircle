@@ -326,6 +326,30 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .two-col{gap:10px}
   .filter-row{gap:6px}
 }
+  @media(max-width:768px){
+  .docs-overlay{
+    position:fixed !important;
+    inset:0 !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    padding:8px !important;
+    overflow:hidden !important;
+  }
+
+  .docs-overlay .modal{
+    width:calc(100vw - 16px) !important;
+    max-width:calc(100vw - 16px) !important;
+    max-height:calc(100dvh - 16px) !important;
+    height:auto !important;
+    overflow:hidden !important;
+  }
+
+  .docs-overlay .modal-body{
+    padding:8px 10px !important;
+    overflow:hidden !important;
+  }
+}
 </style>
 </head>
 <body>
