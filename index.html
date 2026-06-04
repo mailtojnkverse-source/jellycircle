@@ -1451,7 +1451,7 @@ function App(){
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
         page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,profiles:profiles}),
-        page==='docs'&&h(Docs,{docs:docs,user:user,onUpload:function(){setShowUpload(true);lockScroll();}})
+        page==='docs'&&h(Docs,{docs:docs,user:user})
       )
     ),
     modal!==null&&h(TaskModal,{task:modal,onClose:function(){setModal(null);},onSave:saveTask,onDelete:deleteTask,user:user,saving:saving,pics:pics,canEdit:ce}),
