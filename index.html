@@ -159,6 +159,8 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .modal-footer .btn-y,.modal-footer .btn-g,.modal-footer .btn-r{padding:11px 14px;font-size:13px}
   .modal input,.modal textarea,.modal select{font-size:15px !important;padding:12px 14px !important}
   .ticker-item{padding:0 16px;font-size:9px}
+  /* Docs search full width on mobile */
+  .docs-search{width:100% !important;flex:1 1 100% !important}
   /* Recent activity cards on mobile — expand on tap */
   .recent-card{cursor:pointer;-webkit-transition:background .15s;transition:background .15s}
   .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:unset !important}
@@ -1179,7 +1181,7 @@ function Docs(p){
 
     // Search + Team filter
     h('div',{style:{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap',alignItems:'center'}},
-      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search docs...',style:{flex:1,minWidth:0}}),
+      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search docs...',className:'docs-search',style:{width:200,flexShrink:0}}),
       h('div',{style:{display:'flex',gap:6}},
         ['All','Business','Tech','Both'].map(function(t){
           var active=tf===t;
