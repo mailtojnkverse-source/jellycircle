@@ -493,6 +493,18 @@ function fbDelDoc(docId){
   var fs=gFS();
   return fs.deleteDoc(fs.doc(gDB(),'docs',docId));
 }
+function fbSubSchedule(cb){
+  var fs=gFS();
+  return fs.onSnapshot(fs.doc(gDB(),'schedule','current'),
+    function(snap){cb(snap.exists()?snap.data():{});},
+    function(e){console.error('schedule sub:',e);cb({});}
+  );
+}
+function fbSaveSchedule(data){
+  var fs=gFS();
+  return fs.setDoc(fs.doc(gDB(),'schedule','current'),data,{merge:true});
+}
+
 function fbSubMeeting(cb){
   var fs=gFS();
   return fs.onSnapshot(fs.doc(gDB(),'meeting','current'),
@@ -1396,6 +1408,326 @@ function Drawer(p){
   );
 }
 
+
+// ── Schedule Page ──────────────────────────────────────────────────────────────
+function Schedule(p){
+  var user=p.user||'', schedule=p.schedule||{}, onSave=p.onSave;
+  var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
+
+  // ── Timezone table state ──────────────────────────────────────────────────
+  var sTZ=useState(function(){
+    try{var s=localStorage.getItem('jc_tzlist');return s?JSON.parse(s):[];}catch(e){return[];}
+  }),tzList=sTZ[0],setTZList=sTZ[1];
+  var sNewTZ=useState(''),newTZ=sNewTZ[0],setNewTZ=sNewTZ[1];
+  var sTick=useState(0),tick=sTick[1];
+
+  useEffect(function(){
+    var iv=setInterval(function(){tick(function(n){return n+1;});},60000);
+    return function(){clearInterval(iv);};
+  },[]);
+
+  function saveTZList(list){
+    setTZList(list);
+    try{localStorage.setItem('jc_tzlist',JSON.stringify(list));}catch(e){}
+  }
+
+  function addTZ(){
+    var v=newTZ.trim();
+    if(!v)return;
+    // Try to validate timezone
+    try{new Date().toLocaleString('en-US',{timeZone:v});} catch(e){alert('Invalid timezone. Try e.g. "America/New_York", "Asia/Singapore", "Europe/London"');return;}
+    if(tzList.indexOf(v)>-1){alert('Already added');return;}
+    saveTZList(tzList.concat([v]));
+    setNewTZ('');
+  }
+
+  function removeTZ(tz){saveTZList(tzList.filter(function(t){return t!==tz;}));}
+
+  function getTZTime(tz,hour){
+    var now=new Date();
+    // Set to start of today in user's local time at the given hour
+    var userTZ=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var localMidnight=new Date(now.toLocaleDateString('en-US',{timeZone:userTZ}));
+    var targetTime=new Date(localMidnight.getTime()+hour*3600000);
+    try{
+      return targetTime.toLocaleTimeString('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:true});
+    }catch(e){return '--';}
+  }
+
+  function isWorkHour(tz,hour){
+    var now=new Date();
+    var userTZ=Intl.DateTimeFormat().resolvedOptions().timeZone;
+    var localMidnight=new Date(now.toLocaleDateString('en-US',{timeZone:userTZ}));
+    var targetTime=new Date(localMidnight.getTime()+hour*3600000);
+    try{
+      var h=parseInt(targetTime.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
+      return h>=9&&h<18;
+    }catch(e){return false;}
+  }
+
+  function getCityName(tz){return tz.split('/').pop().replace(/_/g,' ');}
+
+  var hours=[];for(var i=0;i<24;i++)hours.push(i);
+  var fmtHour=function(h){return h===0?'12 AM':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';};
+
+  // ── When2Meet state ───────────────────────────────────────────────────────
+  var sDates=useState([]),selectedDates=sDates[0],setSelectedDates=sDates[1];
+  var sPickMode=useState(false),pickMode=sPickMode[0],setPickMode=sPickMode[1];
+  var sDateInput=useState(''),dateInput=sDateInput[0],setDateInput=sDateInput[1];
+  var sHover=useState(null),hoverSlot=sHover[0],setHoverSlot=sHover[1];
+  var sTooltipPos=useState({x:0,y:0}),tooltipPos=sTooltipPos[0],setTooltipPos=sTooltipPos[1];
+
+  // Find current user member
+  var me=null;for(var mi=0;mi<MEMBERS.length;mi++){if(MEMBERS[mi].name.toLowerCase()===user.toLowerCase()){me=MEMBERS[mi];break;}}
+
+  // schedule data: {availability: {memberName: {dateKey_hour: true}}, dates: [...]}
+  var avail=schedule.availability||{};
+  var scheduleDates=schedule.dates||[];
+
+  function slotKey(date,hour){return date+'_'+hour;}
+
+  function isSelected(date,hour){
+    return !!(avail[user]&&avail[user][slotKey(date,hour)]);
+  }
+
+  function toggleSlot(date,hour){
+    var key=slotKey(date,hour);
+    var myAvail=Object.assign({},avail[user]||{});
+    if(myAvail[key]){delete myAvail[key];}
+    else{myAvail[key]=true;}
+    var newAvail=Object.assign({},avail);
+    newAvail[user]=myAvail;
+    onSave({availability:newAvail,dates:scheduleDates});
+  }
+
+  function getSlotCount(date,hour){
+    var key=slotKey(date,hour);
+    var count=0;
+    Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])count++;});
+    return count;
+  }
+
+  function getSlotMembers(date,hour){
+    var key=slotKey(date,hour);
+    var free=[],busy=[];
+    MEMBERS.forEach(function(m){
+      if(scheduleDates.length===0)return;
+      if(avail[m.name]&&avail[m.name][key])free.push(m.name);
+      else busy.push(m.name);
+    });
+    return{free:free,busy:busy};
+  }
+
+  function addDate(){
+    var d=dateInput.trim();
+    if(!d)return;
+    var dt=new Date(d+'T00:00:00');
+    if(isNaN(dt.getTime())){alert('Invalid date');return;}
+    var newDates=[].concat(scheduleDates);
+    if(newDates.indexOf(d)>-1){alert('Date already added');return;}
+    newDates.push(d);
+    newDates.sort();
+    onSave({availability:avail,dates:newDates});
+    setDateInput('');
+  }
+
+  function removeDate(d){
+    var newDates=scheduleDates.filter(function(x){return x!==d;});
+    // Also clean up availability for this date
+    var newAvail={};
+    Object.keys(avail).forEach(function(name){
+      var slots={};
+      Object.keys(avail[name]||{}).forEach(function(key){
+        if(key.indexOf(d+'_')!==0)slots[key]=true;
+      });
+      newAvail[name]=slots;
+    });
+    onSave({availability:newAvail,dates:newDates});
+  }
+
+  function clearMyAvailability(){
+    var newAvail=Object.assign({},avail);
+    newAvail[user]={};
+    onSave({availability:newAvail,dates:scheduleDates});
+  }
+
+  function fmtDate(d){
+    var dt=new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  }
+
+  var maxCount=MEMBERS.length;
+  function slotBg(count,isMe){
+    if(count===0)return '#0D1117';
+    if(isMe)return 'rgba(255,230,0,.15)';
+    var intensity=count/maxCount;
+    var r=Math.round(27+intensity*(46-27));
+    var g=Math.round(17+intensity*(165-17));
+    var b=Math.round(23+intensity*(90-23));
+    return 'rgba('+r+','+g+','+b+','+(0.15+intensity*0.7)+')';
+  }
+
+  // Display hours 9am-10pm for when2meet
+  var meetHours=[];for(var h=0;h<24;h++)meetHours.push(h);
+
+  return h('div',{className:'page fade-up'},
+
+    // ── Timezone Table ──────────────────────────────────────────────────────
+    h('div',{style:{marginBottom:32}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Timezone Table'),
+      h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8',marginBottom:16}},'Schedule'),
+
+      // Add timezone input
+      h('div',{style:{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}},
+        h('input',{value:newTZ,onChange:function(e){setNewTZ(e.target.value);},
+          placeholder:'e.g. America/New_York, Asia/Singapore',
+          style:{flex:1,minWidth:200},
+          onKeyDown:function(e){if(e.key==='Enter')addTZ();}}),
+        h('button',{className:'btn-y',onClick:addTZ},'+ Add')
+      ),
+
+      tzList.length===0&&h('div',{className:'mono',style:{color:'#4A5568',fontSize:12,marginBottom:16}},'// Add timezones above to compare times'),
+
+      tzList.length>0&&h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch'}},
+        h('table',{style:{borderCollapse:'collapse',minWidth:'100%',fontFamily:'Space Mono,monospace',fontSize:11}},
+          // Header
+          h('thead',null,
+            h('tr',null,
+              h('th',{style:{padding:'6px 12px',border:'1px solid #1B6E3C',background:'#161B22',color:'#2EA55A',textAlign:'left',whiteSpace:'nowrap'}},'Your Time'),
+              tzList.map(function(tz){
+                return h('th',{key:tz,style:{padding:'6px 12px',border:'1px solid #1B6E3C',background:'#161B22',color:'#FFE600',textAlign:'center',whiteSpace:'nowrap'}},
+                  h('div',{style:{display:'flex',alignItems:'center',gap:6,justifyContent:'center'}},
+                    getCityName(tz),
+                    h('span',{onClick:function(){removeTZ(tz);},style:{cursor:'pointer',color:'#E8251F',fontWeight:700,fontSize:12}},'✕')
+                  )
+                );
+              })
+            )
+          ),
+          // Rows - 24 hours
+          h('tbody',null,
+            hours.map(function(hour){
+              var allWork=tzList.length>0&&tzList.every(function(tz){return isWorkHour(tz,hour);});
+              return h('tr',{key:hour,style:{background:allWork?'rgba(46,165,90,.08)':'transparent'}},
+                h('td',{style:{padding:'4px 12px',border:'1px solid #1B2030',color:'#9CA3AF',whiteSpace:'nowrap'}},fmtHour(hour)),
+                tzList.map(function(tz){
+                  var isWork=isWorkHour(tz,hour);
+                  return h('td',{key:tz,style:{padding:'4px 12px',border:'1px solid #1B2030',color:isWork?'#F0EDE8':'#4A5568',background:isWork?'rgba(46,165,90,.06)':'transparent',textAlign:'center',whiteSpace:'nowrap'}},
+                    getTZTime(tz,hour)
+                  );
+                })
+              );
+            })
+          )
+        )
+      )
+    ),
+
+    // ── When to Meet ────────────────────────────────────────────────────────
+    h('div',{className:'card',style:{padding:20}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// When to Meet'),
+      h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}},
+        h('p',{style:{fontSize:13,color:'#9CA3AF',margin:0}},'Tap slots to mark your availability'),
+        h('button',{className:'btn-r',style:{fontSize:11,padding:'6px 12px'},onClick:clearMyAvailability},'Clear Mine')
+      ),
+
+      // Add date
+      isAdmin&&h('div',{style:{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}},
+        h('input',{type:'date',value:dateInput,onChange:function(e){setDateInput(e.target.value);},
+          style:{flex:'0 0 auto',colorScheme:'dark'}}),
+        h('button',{className:'btn-g',onClick:addDate},'+ Add Date')
+      ),
+
+      scheduleDates.length===0&&h('div',{className:'mono',style:{color:'#4A5568',fontSize:12,padding:'20px 0',textAlign:'center'}},'// No dates added yet'+(isAdmin?' — add dates above':' — ask an admin to add dates')),
+
+      scheduleDates.length>0&&h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch',position:'relative'}},
+        // Tooltip
+        hoverSlot&&h('div',{style:{
+          position:'fixed',top:tooltipPos.y-10,left:Math.min(tooltipPos.x+10,window.innerWidth-200),
+          background:'#161B22',border:'1px solid #1B6E3C',padding:'10px 14px',
+          zIndex:300,minWidth:160,pointerEvents:'none',
+          boxShadow:'0 4px 20px rgba(0,0,0,.5)'
+        }},
+          h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',marginBottom:6}},hoverSlot.date+' '+fmtHour(hoverSlot.hour)),
+          h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',marginBottom:4}},hoverSlot.members.free.length+'/'+MEMBERS.length+' available'),
+          hoverSlot.members.free.map(function(name){
+            var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name===name){m=MEMBERS[i];break;}}
+            return h('div',{key:name,style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+              h('span',{style:{color:'#2EA55A',fontSize:11}},'✅'),
+              h('span',{style:{fontSize:11,color:'#F0EDE8'}},name)
+            );
+          }),
+          hoverSlot.members.busy.map(function(name){
+            return h('div',{key:name,style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+              h('span',{style:{color:'#E8251F',fontSize:11}},'—'),
+              h('span',{style:{fontSize:11,color:'#4A5568'}},name)
+            );
+          })
+        ),
+
+        h('table',{style:{borderCollapse:'collapse',fontFamily:'Space Mono,monospace',fontSize:11}},
+          h('thead',null,
+            h('tr',null,
+              h('th',{style:{padding:'6px 10px',border:'1px solid #1B6E3C',background:'#161B22',color:'#2EA55A',whiteSpace:'nowrap',minWidth:60}},'Time'),
+              scheduleDates.map(function(d){
+                return h('th',{key:d,style:{padding:'6px 10px',border:'1px solid #1B6E3C',background:'#161B22',color:'#FFE600',textAlign:'center',whiteSpace:'nowrap',minWidth:80}},
+                  h('div',{style:{display:'flex',alignItems:'center',gap:4,justifyContent:'center'}},
+                    h('span',null,fmtDate(d)),
+                    isAdmin&&h('span',{onClick:function(){removeDate(d);},style:{cursor:'pointer',color:'#E8251F',fontSize:12,marginLeft:4}},'✕')
+                  )
+                );
+              })
+            )
+          ),
+          h('tbody',null,
+            meetHours.map(function(hour){
+              return h('tr',{key:hour},
+                h('td',{style:{padding:'3px 10px',border:'1px solid #1B2030',color:'#9CA3AF',whiteSpace:'nowrap'}},fmtHour(hour)),
+                scheduleDates.map(function(d){
+                  var count=getSlotCount(d,hour);
+                  var isMine=isSelected(d,hour);
+                  var bg=count===0?(isMine?'rgba(255,230,0,.15)':'#0D1117'):slotBg(count,isMine);
+                  var members=getSlotMembers(d,hour);
+                  return h('td',{key:d,
+                    style:{
+                      padding:'3px 6px',border:'1px solid #1B2030',
+                      background:isMine?'rgba(255,230,0,.25)':bg,
+                      cursor:'pointer',textAlign:'center',
+                      transition:'background .1s',
+                      outline:isMine?'1px solid #FFE600':'none'
+                    },
+                    onClick:function(){toggleSlot(d,hour);},
+                    onMouseEnter:function(e){setHoverSlot({date:d,hour:hour,members:members});var rect=e.target.getBoundingClientRect();setTooltipPos({x:rect.left,y:rect.top});},
+                    onMouseLeave:function(){setHoverSlot(null);}
+                  },
+                    count>0?h('span',{style:{fontSize:10,color:count>=maxCount*0.8?'#FFE600':'#2EA55A',fontWeight:700}},count):'·'
+                  );
+                })
+              );
+            })
+          )
+        )
+      ),
+
+      // Legend
+      scheduleDates.length>0&&h('div',{style:{display:'flex',gap:16,marginTop:12,flexWrap:'wrap'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+          h('div',{style:{width:16,height:16,background:'rgba(255,230,0,.25)',border:'1px solid #FFE600'}}),
+          h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},"You're free")
+        ),
+        h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+          h('div',{style:{width:16,height:16,background:'rgba(46,165,90,.6)'}}),
+          h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},'Others free')
+        ),
+        h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+          h('div',{style:{width:16,height:16,background:'#0D1117',border:'1px solid #1B2030'}}),
+          h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},'Unavailable')
+        )
+      )
+    )
+  );
+}
+
 // ── Meeting Block ─────────────────────────────────────────────────────────────
 function MeetingBlock(p){
   var meeting=p.meeting, user=p.user||'', onSave=p.onSaveMeeting;
@@ -1527,7 +1859,7 @@ function MeetingBlock(p){
 function Sidebar(p){
   var od=p.tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length;
   var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===p.user.toLowerCase()){m=MEMBERS[i];break;}}
-  var nav=[{id:'dashboard',label:'Dashboard',icon:'-'},{id:'tasks',label:'Tasks',icon:'#',badge:od||0},{id:'docs',label:'Docs',icon:'D'},{id:'team',label:'Team',icon:'@'}];
+  var nav=[{id:'dashboard',label:'Dashboard',icon:'-'},{id:'tasks',label:'Tasks',icon:'#',badge:od||0},{id:'docs',label:'Docs',icon:'D'},{id:'team',label:'Team',icon:'@'},{id:'schedule',label:'Schedule',icon:'T'}];
   return h('div',{className:'sidebar'},
     h('div',{className:'sidebar-logo',style:{padding:'20px 20px 16px',borderBottom:'2px solid #1B6E3C'}},
       h('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
@@ -1573,6 +1905,7 @@ function App(){
   var s5=useState(null),modal=s5[0],setModalRaw=s5[1];
   var s12=useState(false),drawerOpen=s12[0],setDrawerOpen=s12[1];
   var s14=useState(null),meeting=s14[0],setMeeting=s14[1];
+  var s15=useState({}),schedule=s15[0],setSchedule=s15[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
   var s7=useState(null),toast=s7[0],setToast=s7[1];
   var s8=useState(false),loaded=s8[0],setLoaded=s8[1];
@@ -1597,6 +1930,7 @@ function App(){
       }
     }catch(e){}
     var u5=fbSubMeeting(function(m){setMeeting(m);});
+    var u6=fbSubSchedule(function(s){setSchedule(s);});
     var u1=fbSub(function(t){
       setTasks(t);
       setLoaded(true);
@@ -1657,6 +1991,7 @@ function App(){
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
         page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,profiles:profiles}),
+        page==='schedule'&&h(Schedule,{user:user,schedule:schedule,onSave:fbSaveSchedule}),
         page==='docs'&&h(Docs,{docs:docs,user:user})
       )
     ),
