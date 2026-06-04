@@ -1493,7 +1493,7 @@ function MeetingBlock(p){
       ),
       isAdmin&&h('button',{
         onClick:function(){setLink(meeting?meeting.link:'');setTime(meeting&&meeting.utcTime?new Date(meeting.utcTime).toISOString().slice(0,16):'');setTitle(meeting?meeting.title||'':'Team Meeting');setEditing(true);},
-        style:{width:'100%',background:'transparent',border:'1px dashed '+memberColor,color:memberColor,padding:'5px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.06em'}
+        style:{width:'100%',background:'transparent',border:'1px dashed '+memberColor,color:memberColor,padding:'6px 4px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.04em',boxSizing:'border-box',wordBreak:'break-word',whiteSpace:'normal'}
       },'Edit Meeting')
     ),
     editing&&h('div',null,
@@ -1510,9 +1510,14 @@ function MeetingBlock(p){
       ),
       h('div',{style:{marginBottom:10}},
         h('label',null,'Date & Time'),
-        h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117',width:'100%',boxSizing:'border-box'}},
+        h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117',width:'100%',boxSizing:'border-box',display:'flex',alignItems:'center'}},
           h('input',{type:'datetime-local',value:time,onChange:function(e){setTime(e.target.value);},
-            style:{display:'block',width:'100%',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'5px 8px',fontFamily:'Space Grotesk,sans-serif',fontSize:11,boxSizing:'border-box',colorScheme:'dark'}})
+            style:{flex:1,display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'5px 8px',fontFamily:'Space Grotesk,sans-serif',fontSize:11,boxSizing:'border-box',colorScheme:'dark',minWidth:0}}),
+          h('button',{
+            onClick:function(){setTime('');},
+            title:'Clear date and time',
+            style:{background:'transparent',border:'none',borderLeft:'1px solid #1B6E3C',color:'#E8251F',padding:'5px 8px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',flexShrink:0,textTransform:'uppercase',height:'100%'}
+          },'Clear')
         )
       ),
       h('div',{style:{display:'flex',gap:6}},
