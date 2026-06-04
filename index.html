@@ -1225,7 +1225,7 @@ function Docs(p){
     ),
 
     // Upload form modal
-    showForm&&h('div',{className:'overlay',onClick:function(e){if(e.target.className==='overlay'){setShowForm(false);document.body.style.overflow='';}}},
+    showForm&&h('div',{className:'overlay',style:{alignItems:'center',WebkitAlignItems:'center'},onClick:function(e){if(e.target.className==='overlay'){setShowForm(false);document.body.style.overflow='';}}},
       
       h('div',{className:'modal'},
         h('div',{className:'modal-head'},
