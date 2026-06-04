@@ -159,9 +159,13 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .modal-footer .btn-y,.modal-footer .btn-g,.modal-footer .btn-r{padding:11px 14px;font-size:13px}
   .modal input,.modal textarea,.modal select{font-size:15px !important;padding:12px 14px !important}
   .ticker-item{padding:0 16px;font-size:9px}
-  /* Recent activity — show full text on mobile */
-  .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:clip !important}
-  .recent-card-desc{display:block !important}
+  /* Recent activity cards on mobile — expand on tap */
+  .recent-card{cursor:pointer;-webkit-transition:background .15s;transition:background .15s}
+  .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:unset !important}
+  .recent-card-desc{display:none}
+  .recent-card.expanded .recent-card-desc{display:block !important}
+  .recent-card.expanded{background:rgba(27,110,60,.1) !important}
+  .expand-hint{display:inline-block;font-size:10px;color:#2EA55A;font-family:Space Mono,monospace;margin-left:6px}
 }
 @media(min-width:769px){
   .mobile-bar{display:none !important}
@@ -789,7 +793,7 @@ function TaskModal(p){
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function Dashboard(p){
-  var tasks=p.tasks,pics=p.pics||{},onEdit=p.onEdit||function(){};
+  var tasks=p.tasks,pics=p.pics||{};
   var total=tasks.length;
   var done=tasks.filter(function(t){return t.status==='Done';}).length;
   var od=tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length;
@@ -832,8 +836,26 @@ function Dashboard(p){
     h('div',{className:'card',style:{padding:20}},
       h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:14}},'// Recent Activity'),
       recent.length===0&&h('p',{className:'mono',style:{color:'#2EA55A',fontSize:12,textAlign:'center',padding:'20px 0'}},'// No tasks yet'),
-      recent.map(function(t){var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline);return h('div',{key:t.id,onClick:function(){onEdit(t);},style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',marginBottom:2,cursor:'pointer',background:odd?'rgba(232,37,31,.05)':'rgba(27,110,60,.04)',border:'1px solid '+(odd?'rgba(232,37,31,.25)':'#1B6E3C')}},h(Av,{m:m,sz:30,pics:pics}),h('div',{style:{flex:1,minWidth:0}},h('div',{className:'recent-card-title',style:{fontSize:14,fontWeight:600,color:'#F0EDE8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},t.title),h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},(m?m.name:'Unassigned')+' · '+t.team),
-                t.description&&h('div',{className:'recent-card-desc',style:{fontSize:12,color:'#6B7280',marginTop:3,display:'none'}},t.description)),h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0}},h(SBadge,{s:t.status}),odd&&h('span',{className:'mono',style:{fontSize:9,color:'#E8251F',fontWeight:700}},'OVERDUE')));})
+      recent.map(function(t){
+            var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline);
+            return h('div',{key:t.id,
+              className:'recent-card',
+              style:{padding:'10px 14px',marginBottom:2,background:odd?'rgba(232,37,31,.05)':'rgba(27,110,60,.04)',border:'1px solid '+(odd?'rgba(232,37,31,.25)':'#1B6E3C')},
+              onClick:function(e){if(window.innerWidth<=768){e.currentTarget.classList.toggle('expanded');}}
+            },
+              h('div',{style:{display:'flex',alignItems:'center',gap:12}},
+                h(Av,{m:m,sz:30,pics:pics}),
+                h('div',{style:{flex:1,minWidth:0}},
+                  h('div',{className:'recent-card-title',style:{fontSize:14,fontWeight:600,color:'#F0EDE8'}},t.title),
+                  h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},(m?m.name:'Unassigned')+' · '+t.team)
+                ),
+                h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0}},
+                  h(SBadge,{s:t.status}),
+                  odd&&h('span',{className:'mono',style:{fontSize:9,color:'#E8251F',fontWeight:700}},'OVERDUE')
+                )
+              ),
+              t.description&&h('div',{className:'recent-card-desc',style:{fontSize:12,color:'#9CA3AF',marginTop:6,lineHeight:1.5,paddingTop:6,borderTop:'1px solid #1B2030'}},t.description)
+            );})
     )
   );
 }
@@ -1365,7 +1387,7 @@ function App(){
   var s10=useState([]),docs=s10[0],setDocs=s10[1];
   var s11=useState({}),profiles=s11[0],setProfiles=s11[1];
   var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
-  var s5=useState(null),modal=s5[0],setModal=s5[1];
+  var s5=useState(null),modal=s5[0],setModalRaw=s5[1];
   var s12=useState(false),drawerOpen=s12[0],setDrawerOpen=s12[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
   var s7=useState(null),toast=s7[0],setToast=s7[1];
@@ -1412,6 +1434,12 @@ function App(){
   function login(n){lsSet('jc_user',n);setUser(n);}
   function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
+  // Lock/unlock body scroll when modal opens/closes on mobile
+  function lockScroll(){if(window.innerWidth<=768){document.body.style.overflow='hidden';document.body.style.position='fixed';document.body.style.width='100%';}}
+  function unlockScroll(){document.body.style.overflow='';document.body.style.position='';document.body.style.width='';}
+
+  function setModal(val){setModalRaw(val);if(val!==null){lockScroll();}else{unlockScroll();}}
+
   function saveTask(task){
     setSaving(true);
     var existing=null;
@@ -1422,7 +1450,7 @@ function App(){
       .finally(function(){setSaving(false);});
   }
   function deleteTask(id){
-    fbDel(id).then(function(){showToast('Task deleted');setModal(null);}).catch(function(e){console.error(e);showToast('Error');});
+    fbDel(id).then(function(){showToast('Task deleted');setModal(null);unlockScroll();}).catch(function(e){console.error(e);showToast('Error');});
   }
 
   if(!user)return h(Login,{onLogin:login});
@@ -1439,7 +1467,7 @@ function App(){
       h(MobileBar,{onOpen:function(){setDrawerOpen(true);},overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
       h(Ticker,{tasks:tasks}),
       h('div',{className:'main-scroll'},
-        page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
+        page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
         page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,profiles:profiles}),
         page==='docs'&&h(Docs,{docs:docs,user:user})
