@@ -493,6 +493,18 @@ function fbDelDoc(docId){
   var fs=gFS();
   return fs.deleteDoc(fs.doc(gDB(),'docs',docId));
 }
+function fbSubMeeting(cb){
+  var fs=gFS();
+  return fs.onSnapshot(fs.doc(gDB(),'meeting','current'),
+    function(snap){cb(snap.exists()?snap.data():null);},
+    function(e){console.error('meeting sub:',e);cb(null);}
+  );
+}
+function fbSaveMeeting(data){
+  var fs=gFS();
+  return fs.setDoc(fs.doc(gDB(),'meeting','current'),data);
+}
+
 function fbSubDocs(cb){
   var fs=gFS();
   var q=fs.query(fs.collection(gDB(),'docs'),fs.orderBy('createdAt','desc'));
@@ -1360,6 +1372,8 @@ function Drawer(p){
           )
         )
       ),
+      // Meeting block
+      h(MeetingBlock,{meeting:p.meeting,user:p.user,onSaveMeeting:p.onSaveMeeting}),
       // Nav
       h('div',{style:{padding:'14px 12px',flex:1}},
         h('div',{className:'mono',style:{fontSize:9,color:'#1B6E3C',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:10,paddingLeft:12}},'// Nav'),
@@ -1382,6 +1396,107 @@ function Drawer(p){
   );
 }
 
+// ── Meeting Block ─────────────────────────────────────────────────────────────
+function MeetingBlock(p){
+  var meeting=p.meeting, user=p.user||'', onSave=p.onSaveMeeting;
+  var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
+  var sEdit=useState(false),editing=sEdit[0],setEditing=sEdit[1];
+  var sLink=useState(''),link=sLink[0],setLink=sLink[1];
+  var sTime=useState(''),time=sTime[0],setTime=sTime[1];
+  var sTitle=useState(''),title=sTitle[0],setTitle=sTitle[1];
+
+  function getLocalTime(utcIso){
+    if(!utcIso) return null;
+    try{
+      var d=new Date(utcIso);
+      var tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+      var timeStr=d.toLocaleTimeString('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:true});
+      var dateStr=d.toLocaleDateString('en-US',{timeZone:tz,weekday:'short',month:'short',day:'numeric'});
+      var tzParts=tz.split('/');
+      var city=tzParts[tzParts.length-1].replace(/_/g,' ');
+      var local=new Date(d.toLocaleString('en-US',{timeZone:tz}));
+      var utc=new Date(d.toLocaleString('en-US',{timeZone:'UTC'}));
+      var off=Math.round((local-utc)/60000);
+      var sign=off>=0?'+':'-';
+      var a=Math.abs(off);
+      var offset='GMT'+sign+Math.floor(a/60)+(a%60?':'+String(a%60).padStart(2,'0'):'');
+      return{timeStr:timeStr,dateStr:dateStr,city:city,offset:offset};
+    }catch(e){return null;}
+  }
+
+  function getCalUrl(){
+    if(!meeting||!meeting.utcTime) return '#';
+    var d=new Date(meeting.utcTime);
+    var end=new Date(d.getTime()+60*60*1000);
+    function fmt(dt){return dt.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')+'Z';}
+    var t=encodeURIComponent(meeting.title||'Jelly Circle Team Meeting');
+    var loc=encodeURIComponent(meeting.link||'');
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+t+'&dates='+fmt(d)+'/'+fmt(end)+'&location='+loc;
+  }
+
+  function save(){
+    if(!link.trim()||!time.trim()) return;
+    var d=new Date(time);
+    if(isNaN(d.getTime())){alert('Invalid date/time');return;}
+    onSave({title:title||'Team Meeting',link:link,utcTime:d.toISOString(),updatedAt:Date.now()})
+      .then(function(){setEditing(false);})
+      .catch(function(e){console.error(e);});
+  }
+
+  var localTime=meeting?getLocalTime(meeting.utcTime):null;
+
+  return h('div',{style:{margin:'12px 12px',border:'1px solid #1B6E3C',background:'rgba(27,110,60,.08)',padding:'12px'}},
+    !editing&&h('div',null,
+      h('a',{
+        href:meeting&&meeting.link?meeting.link:'#',
+        target:'_blank',
+        rel:'noopener noreferrer',
+        style:{display:'flex',alignItems:'center',gap:8,background:'#2EA55A',color:'#0D1117',padding:'8px 12px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8,justifyContent:'center'}
+      },
+        h('span',{style:{fontSize:14}},'🎥'),
+        'Join Meeting'
+      ),
+      meeting&&localTime&&h('div',{style:{marginBottom:8}},
+        h('div',{style:{fontSize:12,fontWeight:600,color:'#F0EDE8',marginBottom:2}},meeting.title||'Team Meeting'),
+        h('div',{className:'mono',style:{fontSize:10,color:'#FFE600'}},localTime.dateStr),
+        h('div',{className:'mono',style:{fontSize:10,color:'#FFE600'}},localTime.timeStr+' ('+localTime.offset+')')
+      ),
+      !meeting&&h('div',{className:'mono',style:{fontSize:10,color:'#4A5568',marginBottom:8,textAlign:'center'}},'// No meeting set'),
+      meeting&&h('a',{
+        href:getCalUrl(),
+        target:'_blank',
+        rel:'noopener noreferrer',
+        style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,border:'1px solid #2EA55A',color:'#2EA55A',padding:'6px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:isAdmin?6:0}
+      },
+        '+ Add to Calendar'
+      ),
+      isAdmin&&h('button',{
+        onClick:function(){setLink(meeting?meeting.link:'');setTime(meeting&&meeting.utcTime?new Date(meeting.utcTime).toISOString().slice(0,16):'');setTitle(meeting?meeting.title||'':'Team Meeting');setEditing(true);},
+        style:{width:'100%',background:'transparent',border:'1px dashed #1B6E3C',color:'#2EA55A',padding:'5px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.06em'}
+      },'Edit Meeting')
+    ),
+    editing&&h('div',null,
+      h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',marginBottom:8,letterSpacing:'.08em'}},'// SET MEETING'),
+      h('div',{style:{marginBottom:6}},
+        h('label',null,'Title'),
+        h('input',{value:title,onChange:function(e){setTitle(e.target.value);},placeholder:'Team Meeting',style:{fontSize:12,padding:'6px 8px'}})
+      ),
+      h('div',{style:{marginBottom:6}},
+        h('label',null,'Meet Link'),
+        h('input',{value:link,onChange:function(e){setLink(e.target.value);},placeholder:'https://meet.google.com/...',style:{fontSize:12,padding:'6px 8px'}})
+      ),
+      h('div',{style:{marginBottom:8}},
+        h('label',null,'Date & Time (your local time)'),
+        h('input',{type:'datetime-local',value:time,onChange:function(e){setTime(e.target.value);},style:{fontSize:12,padding:'6px 8px',colorScheme:'dark'}})
+      ),
+      h('div',{style:{display:'flex',gap:6}},
+        h('button',{onClick:save,style:{flex:1,background:'#FFE600',color:'#0D1117',border:'none',padding:'7px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase'}},'Save'),
+        h('button',{onClick:function(){setEditing(false);},style:{flex:1,background:'transparent',border:'1px solid #1B6E3C',color:'#2EA55A',padding:'7px',fontFamily:'Space Mono,monospace',fontSize:10,cursor:'pointer',textTransform:'uppercase'}},'Cancel')
+      )
+    )
+  );
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function Sidebar(p){
   var od=p.tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length;
@@ -1397,6 +1512,7 @@ function Sidebar(p){
         )
       )
     ),
+    h(MeetingBlock,{meeting:p.meeting,user:p.user,onSaveMeeting:p.onSaveMeeting}),
     h('div',{className:'sidebar-nav',style:{padding:'14px 12px',flex:1}},
       h('div',{className:'mono',style:{fontSize:9,color:'#1B6E3C',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:10,paddingLeft:12}},'// Nav'),
       nav.map(function(n){
@@ -1430,6 +1546,7 @@ function App(){
   var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
   var s5=useState(null),modal=s5[0],setModalRaw=s5[1];
   var s12=useState(false),drawerOpen=s12[0],setDrawerOpen=s12[1];
+  var s14=useState(null),meeting=s14[0],setMeeting=s14[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
   var s7=useState(null),toast=s7[0],setToast=s7[1];
   var s8=useState(false),loaded=s8[0],setLoaded=s8[1];
@@ -1453,6 +1570,7 @@ function App(){
         gFS().setDoc(gFS().doc(gDB(),'profiles',String(mm.id)),{timezone:tz},{merge:true});
       }
     }catch(e){}
+    var u5=fbSubMeeting(function(m){setMeeting(m);});
     var u1=fbSub(function(t){
       setTasks(t);
       setLoaded(true);
@@ -1504,8 +1622,8 @@ function App(){
 
   var ce=canEdit(user,modal);
   return h('div',{className:'app-wrap'},
-    h(Sidebar,{page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics}),
-    h(Drawer,{open:drawerOpen,onClose:closeDrawer,page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
+    h(Sidebar,{page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,meeting:meeting,onSaveMeeting:fbSaveMeeting}),
+    h(Drawer,{open:drawerOpen,onClose:closeDrawer,page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,meeting:meeting,onSaveMeeting:fbSaveMeeting,overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
     h('div',{className:'main-col'},
       h(MobileBar,{onOpen:openDrawer,onDash:function(){setPage('dashboard');},overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
       h(Ticker,{tasks:tasks}),
