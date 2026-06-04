@@ -1400,6 +1400,7 @@ function Drawer(p){
 function MeetingBlock(p){
   var meeting=p.meeting, user=p.user||'', onSave=p.onSaveMeeting;
   var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
+  var m=null;for(var i=0;i<MEMBERS.length;i++){if(MEMBERS[i].name.toLowerCase()===user.toLowerCase()){m=MEMBERS[i];break;}}
   var sEdit=useState(false),editing=sEdit[0],setEditing=sEdit[1];
   var sLink=useState(''),link=sLink[0],setLink=sLink[1];
   var sTime=useState(''),time=sTime[0],setTime=sTime[1];
@@ -1427,31 +1428,43 @@ function MeetingBlock(p){
   function getCalUrl(){
     if(!meeting||!meeting.utcTime) return '#';
     var d=new Date(meeting.utcTime);
-    var end=new Date(d.getTime()+60*60*1000);
-    function fmt(dt){return dt.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')+'Z';}
-    var t=encodeURIComponent(meeting.title||'Jelly Circle Team Meeting');
+    var endD=new Date(d.getTime()+60*60*1000);
+    function fmt(dt){
+      return dt.getUTCFullYear()+
+        String(dt.getUTCMonth()+1).padStart(2,'0')+
+        String(dt.getUTCDate()).padStart(2,'0')+'T'+
+        String(dt.getUTCHours()).padStart(2,'0')+
+        String(dt.getUTCMinutes()).padStart(2,'0')+'00Z';
+    }
+    var title=encodeURIComponent(meeting.title||'Jelly Circle Team Meeting');
     var loc=encodeURIComponent(meeting.link||'');
-    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+t+'&dates='+fmt(d)+'/'+fmt(end)+'&location='+loc;
+    var details=encodeURIComponent('Join: '+(meeting.link||''));
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+title+'&dates='+fmt(d)+'/'+fmt(endD)+'&location='+loc+'&details='+details;
   }
 
   function save(){
-    if(!link.trim()||!time.trim()) return;
-    var d=new Date(time);
-    if(isNaN(d.getTime())){alert('Invalid date/time');return;}
-    onSave({title:title||'Team Meeting',link:link,utcTime:d.toISOString(),updatedAt:Date.now()})
+    // Allow saving with empty values to effectively clear the meeting
+    var data={title:title,link:link,utcTime:'',updatedAt:Date.now()};
+    if(time.trim()){
+      var d=new Date(time);
+      if(isNaN(d.getTime())){alert('Invalid date/time');return;}
+      data.utcTime=d.toISOString();
+    }
+    onSave(data)
       .then(function(){setEditing(false);})
       .catch(function(e){console.error(e);});
   }
 
   var localTime=meeting?getLocalTime(meeting.utcTime):null;
 
-  return h('div',{style:{margin:'12px 12px',border:'1px solid #1B6E3C',background:'rgba(27,110,60,.08)',padding:'12px'}},
+  var memberColor=m?m.color:'#2EA55A';
+  return h('div',{style:{margin:'12px 12px',border:'1px solid '+memberColor,background:memberColor+'12',padding:'12px'}},
     !editing&&h('div',null,
       h('a',{
         href:meeting&&meeting.link?meeting.link:'#',
         target:'_blank',
         rel:'noopener noreferrer',
-        style:{display:'flex',alignItems:'center',gap:8,background:'#2EA55A',color:'#0D1117',padding:'8px 12px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8,justifyContent:'center'}
+        style:{display:'flex',alignItems:'center',gap:8,background:memberColor,color:'#0D1117',padding:'8px 12px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8,justifyContent:'center'}
       },
         h('span',{style:{fontSize:14}},'🎥'),
         'Join Meeting'
@@ -1466,13 +1479,13 @@ function MeetingBlock(p){
         href:getCalUrl(),
         target:'_blank',
         rel:'noopener noreferrer',
-        style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,border:'1px solid #2EA55A',color:'#2EA55A',padding:'6px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:isAdmin?6:0}
+        style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,border:'1px solid '+memberColor,color:memberColor,padding:'6px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:isAdmin?6:0}
       },
         '+ Add to Calendar'
       ),
       isAdmin&&h('button',{
         onClick:function(){setLink(meeting?meeting.link:'');setTime(meeting&&meeting.utcTime?new Date(meeting.utcTime).toISOString().slice(0,16):'');setTitle(meeting?meeting.title||'':'Team Meeting');setEditing(true);},
-        style:{width:'100%',background:'transparent',border:'1px dashed #1B6E3C',color:'#2EA55A',padding:'5px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.06em'}
+        style:{width:'100%',background:'transparent',border:'1px dashed '+memberColor,color:memberColor,padding:'5px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.06em'}
       },'Edit Meeting')
     ),
     editing&&h('div',null,
