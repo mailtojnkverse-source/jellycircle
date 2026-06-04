@@ -504,6 +504,17 @@ function fbSaveSchedule(data){
   var fs=gFS();
   return fs.setDoc(fs.doc(gDB(),'schedule','current'),data,{merge:true});
 }
+function fbSaveTZList(list){
+  var fs=gFS();
+  return fs.setDoc(fs.doc(gDB(),'settings','timezones'),{list:list,updatedAt:Date.now()});
+}
+function fbSubTZList(cb){
+  var fs=gFS();
+  return fs.onSnapshot(fs.doc(gDB(),'settings','timezones'),
+    function(snap){cb(snap.exists()&&snap.data().list?snap.data().list:null);},
+    function(e){console.error('tz sub:',e);cb(null);}
+  );
+}
 
 function fbSubMeeting(cb){
   var fs=gFS();
@@ -1418,10 +1429,10 @@ function Schedule(p){
   var sTick=useState(0),tick=sTick[1];
 
   useEffect(function(){
-    try{
-      var s=localStorage.getItem('jc_tzlist');
-      if(s){var parsed=JSON.parse(s);if(Array.isArray(parsed))setTZList(parsed);}
-    }catch(e){}
+    var unsub=fbSubTZList(function(list){
+      if(list&&Array.isArray(list))setTZList(list);
+    });
+    return unsub;
   },[]);
 
   useEffect(function(){
@@ -1431,7 +1442,7 @@ function Schedule(p){
 
   function save(list){
     setTZList(list);
-    try{localStorage.setItem('jc_tzlist',JSON.stringify(list));}catch(e){}
+    fbSaveTZList(list);
   }
 
   function addTZ(){
