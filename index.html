@@ -168,7 +168,7 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .docs-search{width:100% !important;flex:1 1 100% !important}
   /* Upload modal — stack fields, scrollable overlay */
   .upload-modal-grid{grid-template-columns:1fr !important}
-  .docs-overlay{-webkit-align-items:flex-start !important;align-items:flex-start !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch;padding:160px 0 0 0 !important}
+  .docs-overlay{-webkit-align-items:flex-start !important;align-items:flex-start !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch;padding:120px 0 0 0 !important}
   .docs-overlay .modal{max-height:none !important;height:auto !important;overflow-y:visible !important;margin:0 !important;border-radius:0 !important;width:100% !important}
   /* Recent activity cards on mobile — expand on tap */
   .recent-card{cursor:pointer;-webkit-transition:background .15s;transition:background .15s}
@@ -1205,7 +1205,7 @@ function Docs(p){
       h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
         h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']')),
-        h('button',{className:'btn-y',onClick:function(){setShowForm(true);if(window.innerWidth<=768){document.body.style.overflow='hidden';}}},'+ Upload')
+        h('button',{className:'btn-y',onClick:function(){setShowForm(true);document.body.style.overflow='hidden';}},'+ Upload')
       )
     ),
 
@@ -1476,8 +1476,8 @@ function App(){
   function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
   // Lock/unlock body scroll when modal opens/closes on mobile
-  function lockScroll(){if(window.innerWidth<=768){document.body.style.overflow='hidden';document.body.style.position='fixed';document.body.style.width='100%';}}
-  function unlockScroll(){document.body.style.overflow='';document.body.style.position='';document.body.style.width='';}
+  function lockScroll(){document.body.style.overflow='hidden';}
+  function unlockScroll(){document.body.style.overflow='';}
 
   function setModal(val){setModalRaw(val);if(val!==null){lockScroll();}else{unlockScroll();}}
   function openDrawer(){setDrawerOpen(true);if(window.innerWidth<=768){lockScroll();}}
