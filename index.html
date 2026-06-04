@@ -1179,7 +1179,7 @@ function Docs(p){
 
     // Search + Team filter
     h('div',{style:{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap',alignItems:'center'}},
-      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search docs...',style:{width:200,flexShrink:0}}),
+      h('input',{value:q,onChange:function(e){setQ(e.target.value);},placeholder:'Search docs...',style:{flex:1,minWidth:0}}),
       h('div',{style:{display:'flex',gap:6}},
         ['All','Business','Tech','Both'].map(function(t){
           var active=tf===t;
