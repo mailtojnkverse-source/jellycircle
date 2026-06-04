@@ -168,6 +168,8 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .ticker-item{padding:0 16px;font-size:9px}
   /* Docs search full width on mobile */
   .docs-search{width:100% !important;flex:1 1 100% !important}
+  /* Upload modal — stack fields, no scroll */
+  .upload-modal-grid{grid-template-columns:1fr !important}
   /* Recent activity cards on mobile — expand on tap */
   .recent-card{cursor:pointer;-webkit-transition:background .15s;transition:background .15s}
   .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:unset !important}
@@ -1203,7 +1205,7 @@ function Docs(p){
       h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Files & Links'),
       h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}},
         h('h1',{style:{fontSize:26,fontWeight:700,color:'#F0EDE8'}},'Docs ',h('span',{className:'mono',style:{fontSize:15,color:'#2EA55A'}},'['+filtered.length+']')),
-        h('button',{className:'btn-y',onClick:function(){setShowForm(true);}},'+ Upload')
+        h('button',{className:'btn-y',onClick:function(){setShowForm(true);if(window.innerWidth<=768){document.body.style.overflow='hidden';document.body.style.position='fixed';document.body.style.width='100%';}}},'+ Upload')
       )
     ),
 
@@ -1227,7 +1229,7 @@ function Docs(p){
       h('div',{className:'modal'},
         h('div',{className:'modal-head'},
           h('span',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Upload Doc'),
-          h('button',{onClick:function(){setShowForm(false);},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
+          h('button',{onClick:function(){setShowForm(false);document.body.style.overflow='';document.body.style.position='';document.body.style.width='';},style:{background:'rgba(0,0,0,.3)',border:'none',width:26,height:26,cursor:'pointer',color:'#F0EDE8',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}},'x')
         ),
         h('div',{className:'modal-body'},
           // Type toggle
@@ -1262,7 +1264,7 @@ function Docs(p){
               )
             :h('div',{style:{marginBottom:10}},h('label',null,'URL *'),h('input',{value:form.url,onChange:function(e){setF('url',e.target.value);},placeholder:'https://...'})),
           // Description + Team in a row
-          h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}},
+          h('div',{className:'upload-modal-grid',style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}},
             h('div',null,h('label',null,'Description'),h('input',{value:form.desc,onChange:function(e){setF('desc',e.target.value);},placeholder:'Optional note'})),
             h('div',null,h('label',null,'Team'),
               h('select',{value:form.team,style:{display:'block',width:'100%'},onChange:function(e){setF('team',e.target.value);}},
@@ -1274,7 +1276,7 @@ function Docs(p){
           h('div',{className:'modal-footer',style:{marginTop:10,paddingTop:10}},
             h('div',null),
             h('div',{style:{display:'flex',gap:8}},
-              h('button',{className:'btn-g',onClick:function(){setShowForm(false);}},'Cancel'),
+              h('button',{className:'btn-g',onClick:function(){setShowForm(false);document.body.style.overflow='';document.body.style.position='';document.body.style.width='';}},'Cancel'),
               h('button',{className:'btn-y',onClick:submit,disabled:uploading},uploading?'Uploading '+progress+'%...':'Upload')
             )
           )
