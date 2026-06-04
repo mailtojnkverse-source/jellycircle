@@ -1458,7 +1458,7 @@ function MeetingBlock(p){
   var localTime=meeting?getLocalTime(meeting.utcTime):null;
 
   var memberColor=m?m.color:'#2EA55A';
-  return h('div',{style:{margin:'0 12px 12px',border:'1px solid '+memberColor,background:memberColor+'12',padding:'12px',boxSizing:'border-box',width:'calc(100% - 24px)'}},
+  return h('div',{style:{margin:'12px 12px 12px',border:'1px solid '+memberColor,background:memberColor+'12',padding:'12px',boxSizing:'border-box',width:'calc(100% - 24px)'}},
     !editing&&h('div',null,
       h('a',{
         href:meeting&&meeting.link?meeting.link:'#',
