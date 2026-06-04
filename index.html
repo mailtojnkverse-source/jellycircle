@@ -1458,7 +1458,7 @@ function MeetingBlock(p){
   var localTime=meeting?getLocalTime(meeting.utcTime):null;
 
   var memberColor=m?m.color:'#2EA55A';
-  return h('div',{style:{margin:'12px 12px',border:'1px solid '+memberColor,background:memberColor+'12',padding:'12px'}},
+  return h('div',{style:{margin:'12px 12px',border:'1px solid '+memberColor,background:memberColor+'12',padding:'12px',overflow:'hidden',boxSizing:'border-box'}},
     !editing&&h('div',null,
       h('a',{
         href:meeting&&meeting.link?meeting.link:'#',
@@ -1475,13 +1475,21 @@ function MeetingBlock(p){
         h('div',{className:'mono',style:{fontSize:10,color:'#FFE600'}},localTime.timeStr+' ('+localTime.offset+')')
       ),
       !meeting&&h('div',{className:'mono',style:{fontSize:10,color:'#4A5568',marginBottom:8,textAlign:'center'}},'// No meeting set'),
-      meeting&&h('a',{
-        href:getCalUrl(),
-        target:'_blank',
-        rel:'noopener noreferrer',
-        style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,border:'1px solid '+memberColor,color:memberColor,padding:'6px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:isAdmin?6:0}
-      },
-        '+ Add to Calendar'
+      meeting&&h('div',{style:{display:'flex',gap:4,marginBottom:isAdmin?6:0}},
+        h('a',{
+          href:getCalUrl(),
+          target:'_blank',
+          rel:'noopener noreferrer',
+          style:{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,border:'1px solid '+memberColor,color:memberColor,padding:'6px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}
+        },'+ Calendar'),
+        meeting.link&&h('button',{
+          onClick:function(){
+            if(navigator.clipboard){navigator.clipboard.writeText(meeting.link);}
+            else{var ta=document.createElement('textarea');ta.value=meeting.link;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+            alert('Meeting link copied!');
+          },
+          style:{background:'transparent',border:'1px solid '+memberColor,color:memberColor,padding:'6px 8px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',flexShrink:0}
+        },'Copy')
       ),
       isAdmin&&h('button',{
         onClick:function(){setLink(meeting?meeting.link:'');setTime(meeting&&meeting.utcTime?new Date(meeting.utcTime).toISOString().slice(0,16):'');setTitle(meeting?meeting.title||'':'Team Meeting');setEditing(true);},
@@ -1491,16 +1499,24 @@ function MeetingBlock(p){
     editing&&h('div',null,
       h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',marginBottom:8,letterSpacing:'.08em'}},'// SET MEETING'),
       h('div',{style:{marginBottom:6}},
-        h('label',null,'Title'),
-        h('input',{value:title,onChange:function(e){setTitle(e.target.value);},placeholder:'Team Meeting',style:{fontSize:12,padding:'6px 8px'}})
+        h('label',null,'Title (optional)'),
+        h('input',{value:title,onChange:function(e){setTitle(e.target.value);},placeholder:'Team Meeting',style:{fontSize:11,padding:'5px 8px',width:'100%',boxSizing:'border-box'}})
       ),
       h('div',{style:{marginBottom:6}},
         h('label',null,'Meet Link'),
-        h('input',{value:link,onChange:function(e){setLink(e.target.value);},placeholder:'https://meet.google.com/...',style:{fontSize:12,padding:'6px 8px'}})
+        h('input',{value:link,onChange:function(e){setLink(e.target.value);},placeholder:'https://meet.google.com/...',style:{fontSize:11,padding:'5px 8px',width:'100%',boxSizing:'border-box'}})
       ),
       h('div',{style:{marginBottom:8}},
-        h('label',null,'Date & Time (your local time)'),
-        h('input',{type:'datetime-local',value:time,onChange:function(e){setTime(e.target.value);},style:{fontSize:12,padding:'6px 8px',colorScheme:'dark'}})
+        h('label',null,'Date & Time'),
+        h('div',{style:{display:'flex',gap:4}},
+          h('div',{style:{flex:1,border:'1px solid #2EA55A',background:'#0D1117',boxSizing:'border-box'}},
+            h('input',{type:'datetime-local',value:time,onChange:function(e){setTime(e.target.value);},
+              style:{display:'block',width:'100%',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'5px 8px',fontFamily:'Space Grotesk,sans-serif',fontSize:11,boxSizing:'border-box',colorScheme:'dark'}})
+          ),
+          h('button',{onClick:function(){setTime('');},
+            style:{background:'transparent',border:'1px solid #E8251F',color:'#E8251F',padding:'5px 8px',fontFamily:'Space Mono,monospace',fontSize:9,cursor:'pointer',flexShrink:0,textTransform:'uppercase'}
+          },'Clear')
+        )
       ),
       h('div',{style:{display:'flex',gap:6}},
         h('button',{onClick:save,style:{flex:1,background:'#FFE600',color:'#0D1117',border:'none',padding:'7px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase'}},'Save'),
