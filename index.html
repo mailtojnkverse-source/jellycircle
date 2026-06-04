@@ -151,9 +151,17 @@ label{font-size:10px;font-weight:700;color:#2EA55A;text-transform:uppercase;lett
   .team-card{width:100%}
   .filter-row{gap:6px}
   .overlay{padding:0;-webkit-align-items:flex-end;align-items:flex-end;background:rgba(0,0,0,.6)}
-  .modal{width:100%;max-width:100%;max-height:88vh;border:2px solid #1B6E3C;border-top:3px solid #FF3D8B;border-bottom:none;border-radius:0}
-  .modal-body{padding:14px 16px 20px}
+  .overlay{padding:12px !important;-webkit-align-items:center !important;align-items:center !important}
+  .modal{width:calc(100% - 0px) !important;max-width:100% !important;max-height:86vh;border:2px solid #1B6E3C !important;border-top:3px solid #FF3D8B !important;border-radius:0}
+  .modal-body{padding:16px 16px 24px}
+  .modal-head{padding:12px 16px}
+  .modal-footer{padding-top:12px;margin-top:12px}
+  .modal-footer .btn-y,.modal-footer .btn-g,.modal-footer .btn-r{padding:11px 14px;font-size:13px}
+  .modal input,.modal textarea,.modal select{font-size:15px !important;padding:12px 14px !important}
   .ticker-item{padding:0 16px;font-size:9px}
+  /* Recent activity — show full text on mobile */
+  .recent-card-title{white-space:normal !important;overflow:visible !important;text-overflow:clip !important}
+  .recent-card-desc{display:block !important}
 }
 @media(min-width:769px){
   .mobile-bar{display:none !important}
@@ -824,7 +832,8 @@ function Dashboard(p){
     h('div',{className:'card',style:{padding:20}},
       h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:14}},'// Recent Activity'),
       recent.length===0&&h('p',{className:'mono',style:{color:'#2EA55A',fontSize:12,textAlign:'center',padding:'20px 0'}},'// No tasks yet'),
-      recent.map(function(t){var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline);return h('div',{key:t.id,onClick:function(){onEdit(t);},style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',marginBottom:2,cursor:'pointer',background:odd?'rgba(232,37,31,.05)':'rgba(27,110,60,.04)',border:'1px solid '+(odd?'rgba(232,37,31,.25)':'#1B6E3C')}},h(Av,{m:m,sz:30,pics:pics}),h('div',{style:{flex:1,minWidth:0}},h('div',{style:{fontSize:14,fontWeight:600,color:'#F0EDE8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},t.title),h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},(m?m.name:'Unassigned')+' · '+t.team)),h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0}},h(SBadge,{s:t.status}),odd&&h('span',{className:'mono',style:{fontSize:9,color:'#E8251F',fontWeight:700}},'OVERDUE')));})
+      recent.map(function(t){var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline);return h('div',{key:t.id,onClick:function(){onEdit(t);},style:{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',marginBottom:2,cursor:'pointer',background:odd?'rgba(232,37,31,.05)':'rgba(27,110,60,.04)',border:'1px solid '+(odd?'rgba(232,37,31,.25)':'#1B6E3C')}},h(Av,{m:m,sz:30,pics:pics}),h('div',{style:{flex:1,minWidth:0}},h('div',{className:'recent-card-title',style:{fontSize:14,fontWeight:600,color:'#F0EDE8',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},t.title),h('div',{className:'mono',style:{fontSize:11,color:'#2EA55A'}},(m?m.name:'Unassigned')+' · '+t.team),
+                t.description&&h('div',{className:'recent-card-desc',style:{fontSize:12,color:'#6B7280',marginTop:3,display:'none'}},t.description)),h('div',{style:{display:'flex',gap:6,alignItems:'center',flexShrink:0}},h(SBadge,{s:t.status}),odd&&h('span',{className:'mono',style:{fontSize:9,color:'#E8251F',fontWeight:700}},'OVERDUE')));})
     )
   );
 }
