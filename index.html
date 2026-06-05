@@ -1456,6 +1456,8 @@ function Schedule(p){
   var avail=schedule.availability||{};
   var scheduleDates=schedule.dates||[];
   var sDateIn=useState(''),dateInput=sDateIn[0],setDateInput=sDateIn[1];
+  var sDRS=useState(''),dateRangeStart=sDRS[0],setDateRangeStart=sDRS[1];
+  var sDRE=useState(''),dateRangeEnd=sDRE[0],setDateRangeEnd=sDRE[1];
 
   function getActiveTZ(){return myTZ==='device'?deviceTZ:myTZ;}
 
@@ -1518,6 +1520,61 @@ function Schedule(p){
     var nd=[].concat(scheduleDates,[dateInput]).sort();
     p.onSave({availability:avail,dates:nd});
     setDateInput('');
+  }
+
+  function addDateRange(){
+    if(!dateRangeStart||!dateRangeEnd)return;
+    var start=new Date(dateRangeStart+'T00:00:00');
+    var end=new Date(dateRangeEnd+'T00:00:00');
+    if(start>end){alert('Start date must be before end date');return;}
+    var nd=[].concat(scheduleDates);
+    var cur=new Date(start);
+    while(cur<=end){
+      var iso=cur.toISOString().slice(0,10);
+      if(nd.indexOf(iso)<0)nd.push(iso);
+      cur.setDate(cur.getDate()+1);
+    }
+    nd.sort();
+    p.onSave({availability:avail,dates:nd});
+    setDateRangeStart('');
+    setDateRangeEnd('');
+  }
+
+  function clearAllDates(){
+    if(!window.confirm('Clear all dates and availability?'))return;
+    p.onSave({availability:{},dates:[]});
+  }
+
+  function getBestSlot(){
+    var best=null,bestCount=0;
+    scheduleDates.forEach(function(d){
+      meetHours.forEach(function(hr){
+        var tz=getActiveTZ();
+        var key=slotKey(d,hr,tz);
+        var n=0;
+        Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])n++;});
+        if(n>bestCount){bestCount=n;best={date:d,hour:hr,count:n};}
+      });
+    });
+    return best;
+  }
+
+  function scheduleBestSlot(){
+    var best=getBestSlot();
+    if(!best){alert('No availability data yet');return;}
+    var tz=getActiveTZ();
+    var offset=getTZOffset(tz);
+    var utcHour=((best.hour-offset)%24+24)%24;
+    var dt=new Date(best.date+'T'+String(utcHour).padStart(2,'0')+':00:00Z');
+    if(window.confirm('Schedule meeting on '+fmtDate(best.date)+' at '+fmtH(best.hour)+' ('+best.count+' people free)?')){
+      fbSaveMeeting({
+        title:'Team Meeting',
+        link:(p.meeting&&p.meeting.link)||'',
+        utcTime:dt.toISOString(),
+        updatedAt:Date.now()
+      });
+      alert('Meeting scheduled!');
+    }
   }
 
   function removeDate(d){
@@ -1737,17 +1794,73 @@ function Schedule(p){
         ),
         h('button',{className:'btn-r',style:{fontSize:11,padding:'6px 12px',alignSelf:'flex-end'},onClick:clearMine},'Clear Mine')
       ),
-      isAdmin&&h('div',{style:{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}},
-        h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117',flexShrink:0}},
-          h('input',{type:'date',value:dateInput,onChange:function(e){setDateInput(e.target.value);},
-            style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'8px 12px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
-        ),
-        h('button',{className:'btn-g',onClick:addDate},'+ Add Date')
+      isAdmin&&h('div',{style:{marginBottom:14}},
+        h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:8}},'// Add Date Range'),
+        h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}},
+          h('div',null,
+            h('label',null,'From'),
+            h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117'}},
+              h('input',{type:'date',value:dateRangeStart,onChange:function(e){setDateRangeStart(e.target.value);},
+                style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'7px 10px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
+            )
+          ),
+          h('div',null,
+            h('label',null,'To'),
+            h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117'}},
+              h('input',{type:'date',value:dateRangeEnd,onChange:function(e){setDateRangeEnd(e.target.value);},
+                style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'7px 10px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
+            )
+          ),
+          h('button',{className:'btn-g',onClick:addDateRange},'+ Add Range'),
+          scheduleDates.length>0&&h('button',{className:'btn-r',style:{fontSize:11,padding:'7px 12px'},onClick:clearAllDates},'Clear All')
+        )
       ),
       scheduleDates.length===0&&h('div',{className:'mono',style:{color:'#4A5568',fontSize:12,padding:'20px 0',textAlign:'center'}},
         isAdmin?'// Add dates above to start':'// Waiting for admin to add dates'
       ),
-      scheduleDates.length>0&&h('div',{style:{position:'relative'}},
+      scheduleDates.length>0&&h('div',{style:{marginBottom:16}},
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+          h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',letterSpacing:'.08em',textTransform:'uppercase'}},'// Your Availability'),
+          isAdmin&&getBestSlot()&&h('button',{
+            onClick:scheduleBestSlot,
+            style:{background:'#2EA55A',color:'#0D1117',border:'none',padding:'6px 14px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em'}
+          },'⭐ Schedule Best Slot')
+        ),
+        h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch',marginBottom:16}},
+          h('table',{style:{borderCollapse:'collapse',fontFamily:'Space Mono,monospace',fontSize:11}},
+            h('thead',null,
+              h('tr',null,
+                h('th',{style:{padding:'6px 10px',border:'1px solid #1B6E3C',background:'#161B22',color:'#2EA55A',whiteSpace:'nowrap',position:'sticky',left:0,zIndex:2,minWidth:55}},'Time'),
+                scheduleDates.map(function(d){
+                  return h('th',{key:d,style:{padding:'6px 10px',border:'1px solid #1B6E3C',background:'#161B22',color:'#FFE600',textAlign:'center',whiteSpace:'nowrap',minWidth:80}},
+                    h('div',{style:{display:'flex',alignItems:'center',gap:4,justifyContent:'center'}},
+                      fmtDate(d),
+                      isAdmin&&h('span',{onClick:function(){removeDate(d);},style:{cursor:'pointer',color:'#E8251F',fontSize:13,marginLeft:4,lineHeight:1}},'×')
+                    )
+                  );
+                })
+              )
+            ),
+            h('tbody',null,
+              meetHours.map(function(hour){
+                return h('tr',{key:hour},
+                  h('td',{style:{padding:'3px 10px',border:'1px solid #1B2030',color:'#9CA3AF',whiteSpace:'nowrap',position:'sticky',left:0,background:'#0D1117',zIndex:1}},fmtH(hour)),
+                  scheduleDates.map(function(d){
+                    var mine=isMine(d,hour);
+                    return h('td',{key:d,
+                      style:{padding:'3px 6px',border:'1px solid #1B2030',background:mine?'rgba(255,230,0,.3)':'transparent',cursor:'pointer',textAlign:'center',outline:mine?'2px solid #FFE600':'none',outlineOffset:'-2px',transition:'background .1s',minWidth:70},
+                      onClick:function(){toggleSlot(d,hour);}
+                    },
+                      mine&&h('span',{style:{fontSize:10,color:'#FFE600',fontWeight:700}},'✓')
+                    );
+                  })
+                );
+              })
+            )
+          )
+        ),
+        h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:8}},'// Team Overlap'),
+        h('div',{style:{position:'relative'}},
         // Hover tooltip
         hoverSlot&&h('div',{style:{
           position:'fixed',
@@ -1841,6 +1954,7 @@ function Schedule(p){
             h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},'Most free')
           )
         )
+        ) // close overlap div
       )
     )
   );
@@ -2109,7 +2223,7 @@ function App(){
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
         page==='tasks'&&h(Tasks,{tasks:tasks,onNew:function(){setModal({});},onEdit:function(t){setModal(t);},pics:pics}),
         page==='team'&&h(Team,{tasks:tasks,pics:pics,user:user,profiles:profiles}),
-        page==='schedule'&&h(Schedule,{user:user,schedule:schedule,onSave:fbSaveSchedule}),
+        page==='schedule'&&h(Schedule,{user:user,schedule:schedule,onSave:fbSaveSchedule,meeting:meeting}),
         page==='docs'&&h(Docs,{docs:docs,user:user})
       )
     ),
