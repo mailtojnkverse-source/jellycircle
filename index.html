@@ -1477,9 +1477,9 @@ function Schedule(p){
 
   // Store as "tz_hour" key so different timezones map correctly
   function slotKey(date,hour,tz){
-    var offset=getTZOffset(tz);
-    var utcH=((hour-offset)%24+24)%24;
-    return date+'__'+utcH;
+    // Store as localHour__timezone so key is always deterministic
+    var safeTZ=(tz||'UTC').replace(/[^A-Za-z0-9_]/g,'_');
+    return date+'__'+hour+'__'+safeTZ;
   }
 
   function isMine(date,hour){
@@ -1491,9 +1491,12 @@ function Schedule(p){
   function toggleSlot(date,hour){
     var tz=getActiveTZ();
     var key=slotKey(date,hour,tz);
-    var mine=Object.assign({},avail[user]||{});
-    if(mine[key]){delete mine[key];}else{mine[key]=true;}
-    var newAvail=Object.assign({},avail);
+    var currentVal=avail[user]&&avail[user][key];
+    var mine={};
+    if(avail[user]){Object.keys(avail[user]).forEach(function(k){mine[k]=avail[user][k];});}
+    if(currentVal){delete mine[key];}else{mine[key]=true;}
+    var newAvail={};
+    Object.keys(avail).forEach(function(k){newAvail[k]=avail[k];});
     newAvail[user]=mine;
     p.onSave({availability:newAvail,dates:scheduleDates});
   }
@@ -1584,12 +1587,14 @@ function Schedule(p){
 
   function doSchedule(slot){
     var tz=getActiveTZ();
-    var offset=getTZOffset(tz);
-    var utcHour=((slot.hour-offset)%24+24)%24;
-    var yr=slot.date.split('-')[0];
-    var mo=slot.date.split('-')[1];
-    var dy=slot.date.split('-')[2];
-    var dt=new Date(Date.UTC(parseInt(yr),parseInt(mo)-1,parseInt(dy),utcHour,0,0));
+    // Convert local hour in selected tz to UTC for meeting storage
+    var now=new Date();
+    var local=new Date(now.toLocaleString('en-US',{timeZone:tz}));
+    var utcDate=new Date(now.toLocaleString('en-US',{timeZone:'UTC'}));
+    var offsetH=Math.round((local-utcDate)/3600000);
+    var utcHour=((slot.hour-offsetH)%24+24)%24;
+    var parts=slot.date.split('-');
+    var dt=new Date(Date.UTC(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),utcHour,0,0));
     fbSaveMeeting({
       title:'Team Meeting',
       link:(p.meeting&&p.meeting.link)||'',
@@ -1618,7 +1623,7 @@ function Schedule(p){
     var na={};
     Object.keys(avail).forEach(function(name){
       var slots={};
-      Object.keys(avail[name]||{}).forEach(function(k){if(k.indexOf(d+'__')!==0)slots[k]=true;});
+      Object.keys(avail[name]||{}).forEach(function(k){if(k.slice(0,d.length+2)!==d+'__')slots[k]=true;});
       na[name]=slots;
     });
     p.onSave({availability:na,dates:nd});
@@ -1911,7 +1916,7 @@ function Schedule(p){
                     var mine=isMine(d,hour);
                     return h('td',{key:d,
                       style:{padding:'3px 6px',border:'1px solid #1B2030',background:mine?'rgba(255,230,0,.3)':'transparent',cursor:'pointer',textAlign:'center',outline:mine?'2px solid #FFE600':'none',outlineOffset:'-2px',transition:'background .1s',minWidth:70},
-                      onClick:function(){toggleSlot(d,hour);}
+                      onClick:function(e){e.stopPropagation();toggleSlot(d,hour);}
                     },
                       mine&&h('span',{style:{fontSize:10,color:'#FFE600',fontWeight:700}},'✓')
                     );
