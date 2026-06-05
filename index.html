@@ -2117,7 +2117,12 @@ function MeetingBlock(p){
           style:{fontSize:11,padding:'5px 8px',width:'100%',boxSizing:'border-box',display:'block'}})
       ),
       h('div',{style:{marginBottom:10}},
-        h('label',null,'Date & Time'),
+        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}},
+          h('label',{style:{margin:0}},'Date & Time'),
+          time&&h('button',{onClick:function(){setTime('');},style:{background:'transparent',border:'none',color:'#E8251F',fontFamily:'Space Mono,monospace',fontSize:10,cursor:'pointer',padding:'0 2px',textTransform:'uppercase',letterSpacing:'.04em'}},
+            '— Clear'
+          )
+        ),
         h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117',width:'100%',boxSizing:'border-box'}},
           h('input',{type:'datetime-local',value:time,onChange:function(e){setTime(e.target.value);},
             style:{display:'block',width:'100%',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'5px 8px',fontFamily:'Space Grotesk,sans-serif',fontSize:11,boxSizing:'border-box',colorScheme:'dark'}})
