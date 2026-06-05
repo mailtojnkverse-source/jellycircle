@@ -2195,7 +2195,8 @@ function App(){
   var s3=useState({}),pics=s3[0],setPics=s3[1];
   var s10=useState([]),docs=s10[0],setDocs=s10[1];
   var s11=useState({}),profiles=s11[0],setProfiles=s11[1];
-  var s4=useState('dashboard'),page=s4[0],setPage=s4[1];
+  var s4=useState(function(){try{var sv=localStorage.getItem('jc_page');return sv||'dashboard';}catch(e){return 'dashboard';}}()),page=s4[0],setPageRaw=s4[1];
+  function setPage(pg){setPageRaw(pg);try{localStorage.setItem('jc_page',pg);}catch(e){}}
   var s5=useState(null),modal=s5[0],setModalRaw=s5[1];
   var s12=useState(false),drawerOpen=s12[0],setDrawerOpen=s12[1];
   var s14=useState(null),meeting=s14[0],setMeeting=s14[1];
