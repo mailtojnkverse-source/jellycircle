@@ -2090,14 +2090,27 @@ function MeetingBlock(p){
           rel:'noopener noreferrer',
           style:{display:'flex',alignItems:'center',justifyContent:'center',gap:6,border:'1px solid '+memberColor,color:memberColor,padding:'6px',textDecoration:'none',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}
         },'+ Add to Calendar'),
-        meeting.link&&h('button',{
+        meeting&&h('button',{
           onClick:function(){
-            if(navigator.clipboard){navigator.clipboard.writeText(meeting.link);}
-            else{var ta=document.createElement('textarea');ta.value=meeting.link;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
-            alert('Link copied!');
+            var lines=[];
+            if(meeting.title)lines.push(meeting.title);
+            if(meeting.utcTime){
+              try{
+                var tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+                var d=new Date(meeting.utcTime);
+                var dateStr=d.toLocaleDateString('en-US',{timeZone:tz,weekday:'long',year:'numeric',month:'long',day:'numeric'});
+                var timeStr=d.toLocaleTimeString('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:true});
+                lines.push(dateStr+' at '+timeStr);
+              }catch(ex){}
+            }
+            if(meeting.link)lines.push(meeting.link);
+            var text=lines.join(String.fromCharCode(10));
+            if(navigator.clipboard){navigator.clipboard.writeText(text);}
+            else{var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+            alert('Copied!');
           },
           style:{background:'transparent',border:'1px solid '+memberColor,color:memberColor,padding:'6px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',width:'100%'}
-        },'Copy Meeting Link')
+        },'Copy Meeting Details')
       ),
       isAdmin&&h('button',{
         onClick:function(){setLink(meeting?meeting.link:'');setTime(meeting&&meeting.utcTime?new Date(meeting.utcTime).toISOString().slice(0,16):'');setTitle(meeting?meeting.title||'':'Team Meeting');setEditing(true);},
