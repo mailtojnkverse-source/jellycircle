@@ -1559,21 +1559,51 @@ function Schedule(p){
     return best;
   }
 
-  function scheduleBestSlot(){
-    var best=getBestSlot();
-    if(!best){alert('No availability data yet');return;}
+  function getBestSlots(){
+    var bestCount=0,slots=[];
+    scheduleDates.forEach(function(d){
+      meetHours.forEach(function(hr){
+        var tz=getActiveTZ();
+        var key=slotKey(d,hr,tz);
+        var n=0;
+        Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])n++;});
+        if(n>0){
+          if(n>bestCount){bestCount=n;slots=[{date:d,hour:hr,count:n}];}
+          else if(n===bestCount){slots.push({date:d,hour:hr,count:n});}
+        }
+      });
+    });
+    return slots;
+  }
+
+  function doSchedule(slot){
     var tz=getActiveTZ();
     var offset=getTZOffset(tz);
-    var utcHour=((best.hour-offset)%24+24)%24;
-    var dt=new Date(best.date+'T'+String(utcHour).padStart(2,'0')+':00:00Z');
-    if(window.confirm('Schedule meeting on '+fmtDate(best.date)+' at '+fmtH(best.hour)+' ('+best.count+' people free)?')){
-      fbSaveMeeting({
-        title:'Team Meeting',
-        link:(p.meeting&&p.meeting.link)||'',
-        utcTime:dt.toISOString(),
-        updatedAt:Date.now()
-      });
-      alert('Meeting scheduled!');
+    var utcHour=((slot.hour-offset)%24+24)%24;
+    var yr=slot.date.split('-')[0];
+    var mo=slot.date.split('-')[1];
+    var dy=slot.date.split('-')[2];
+    var dt=new Date(Date.UTC(parseInt(yr),parseInt(mo)-1,parseInt(dy),utcHour,0,0));
+    fbSaveMeeting({
+      title:'Team Meeting',
+      link:(p.meeting&&p.meeting.link)||'',
+      utcTime:dt.toISOString(),
+      updatedAt:Date.now()
+    });
+  }
+
+  var sBestSlots=useState([]),bestSlotOptions=sBestSlots[0],setBestSlotOptions=sBestSlots[1];
+
+  function scheduleBestSlot(){
+    var slots=getBestSlots();
+    if(!slots.length){alert('No availability data yet');return;}
+    if(slots.length===1){
+      if(window.confirm('Schedule meeting on '+fmtDate(slots[0].date)+' at '+fmtH(slots[0].hour)+' ('+slots[0].count+' people free)?')){
+        doSchedule(slots[0]);
+        alert('Meeting scheduled!');
+      }
+    } else {
+      setBestSlotOptions(slots);
     }
   }
 
@@ -1821,10 +1851,30 @@ function Schedule(p){
       scheduleDates.length>0&&h('div',{style:{marginBottom:16}},
         h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
           h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',letterSpacing:'.08em',textTransform:'uppercase'}},'// Your Availability'),
-          isAdmin&&getBestSlot()&&h('button',{
+          isAdmin&&getBestSlots().length>0&&h('button',{
             onClick:scheduleBestSlot,
             style:{background:'#2EA55A',color:'#0D1117',border:'none',padding:'6px 14px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em'}
-          },'⭐ Schedule Best Slot')
+          },'⭐ Schedule Best Slot'),
+          // Tie picker
+          bestSlotOptions.length>1&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center',padding:20},
+            onClick:function(e){if(e.target===e.currentTarget)setBestSlotOptions([]);}},
+            h('div',{style:{background:'#161B22',border:'2px solid #2EA55A',borderTop:'3px solid #FFE600',padding:20,maxWidth:400,width:'100%'}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}},
+                h('div',{className:'mono',style:{fontSize:10,color:'#FFE600',letterSpacing:'.1em',textTransform:'uppercase'}},'// Pick a Time'),
+                h('button',{onClick:function(){setBestSlotOptions([]);},style:{background:'none',border:'none',color:'#2EA55A',cursor:'pointer',fontSize:18}},'×')
+              ),
+              h('div',{className:'mono',style:{fontSize:11,color:'#9CA3AF',marginBottom:12}},bestSlotOptions.length+' slots tied at '+bestSlotOptions[0].count+'/'+MEMBERS.length+' people free:'),
+              bestSlotOptions.map(function(slot,si){
+                return h('button',{key:si,
+                  onClick:function(){doSchedule(slot);setBestSlotOptions([]);alert('Meeting scheduled!');},
+                  style:{display:'block',width:'100%',background:'rgba(46,165,90,.1)',border:'1px solid #2EA55A',color:'#F0EDE8',padding:'10px 14px',marginBottom:6,cursor:'pointer',textAlign:'left',fontFamily:'Space Grotesk,sans-serif',fontSize:13}},
+                  h('span',{style:{color:'#FFE600',fontFamily:'Space Mono,monospace',marginRight:8}},fmtDate(slot.date)),
+                  fmtH(slot.hour),
+                  h('span',{style:{marginLeft:8,fontSize:11,color:'#2EA55A',fontFamily:'Space Mono,monospace'}},slot.count+' free')
+                );
+              })
+            )
+          )
         ),
         h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch',marginBottom:16}},
           h('table',{style:{borderCollapse:'collapse',fontFamily:'Space Mono,monospace',fontSize:11}},
@@ -1911,27 +1961,22 @@ function Schedule(p){
                     fmtH(hour)
                   ),
                   scheduleDates.map(function(d){
-                    var mine=isMine(d,hour);
                     var count=getCount(d,hour);
                     return h('td',{key:d,
                       style:{
                         padding:'3px 6px',border:'1px solid #1B2030',
-                        background:mine?'rgba(255,230,0,.25)':slotBg(count),
-                        cursor:'pointer',textAlign:'center',
-                        outline:mine?'2px solid #FFE600':'none',
-                        outlineOffset:'-2px',
+                        background:slotBg(count),
+                        cursor:'default',textAlign:'center',
                         transition:'background .1s',
                         minWidth:70
                       },
-                      onClick:function(){toggleSlot(d,hour);},
                       onMouseEnter:function(e){
                         var rect=e.currentTarget.getBoundingClientRect();
                         setHoverSlot({date:d,hour:hour,who:getWho(d,hour),x:rect.left,y:rect.bottom+4});
                       },
                       onMouseLeave:function(){setHoverSlot(null);}
                     },
-                      count>0&&h('span',{style:{fontSize:10,color:count>=MEMBERS.length*0.8?'#FFE600':'#F0EDE8',fontWeight:700}},count),
-                      !count&&mine&&h('span',{style:{fontSize:10,color:'#FFE600'}},'✓')
+                      null
                     );
                   })
                 );
