@@ -1424,6 +1424,7 @@ function Drawer(p){
 // ── Schedule Page ──────────────────────────────────────────────────────────────
 function Schedule(p){
   var user=p.user||'';
+  var isAdmin=ADMINS.indexOf(user.toLowerCase())>-1;
   var sTZ=useState([]),tzList=sTZ[0],setTZList=sTZ[1];
   var sNew=useState(''),newTZ=sNew[0],setNewTZ=sNew[1];
   var sTick=useState(0),tick=sTick[1];
