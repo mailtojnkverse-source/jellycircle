@@ -1826,35 +1826,37 @@ function Schedule(p){
       ),
       isAdmin&&h('div',{style:{marginBottom:14}},
         h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:8}},'// Add Date Range'),
-        h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}},
-          h('div',null,
-            h('label',null,'From'),
-            h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117'}},
-              h('input',{type:'date',value:dateRangeStart,onChange:function(e){setDateRangeStart(e.target.value);},
-                style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'7px 10px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
-            )
+        h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end',justifyContent:'space-between'}},
+          h('div',{style:{display:'flex',gap:8,flexWrap:'wrap',alignItems:'flex-end'}},
+            h('div',null,
+              h('label',null,'From'),
+              h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117'}},
+                h('input',{type:'date',value:dateRangeStart,onChange:function(e){setDateRangeStart(e.target.value);},
+                  style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'7px 10px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
+              )
+            ),
+            h('div',null,
+              h('label',null,'To'),
+              h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117'}},
+                h('input',{type:'date',value:dateRangeEnd,onChange:function(e){setDateRangeEnd(e.target.value);},
+                  style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'7px 10px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
+              )
+            ),
+            h('button',{className:'btn-g',onClick:addDateRange},'+ Add Range'),
+            scheduleDates.length>0&&h('button',{className:'btn-r',style:{fontSize:11,padding:'7px 12px'},onClick:clearAllDates},'Clear All')
           ),
-          h('div',null,
-            h('label',null,'To'),
-            h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117'}},
-              h('input',{type:'date',value:dateRangeEnd,onChange:function(e){setDateRangeEnd(e.target.value);},
-                style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'7px 10px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
-            )
-          ),
-          h('button',{className:'btn-g',onClick:addDateRange},'+ Add Range'),
-          scheduleDates.length>0&&h('button',{className:'btn-r',style:{fontSize:11,padding:'7px 12px'},onClick:clearAllDates},'Clear All')
+          isAdmin&&getBestSlots().length>0&&h('button',{
+            onClick:scheduleBestSlot,
+            style:{background:'#2EA55A',color:'#0D1117',border:'none',padding:'7px 14px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em',alignSelf:'flex-end'}
+          },'⭐ Schedule Best Slot')
         )
       ),
       scheduleDates.length===0&&h('div',{className:'mono',style:{color:'#4A5568',fontSize:12,padding:'20px 0',textAlign:'center'}},
         isAdmin?'// Add dates above to start':'// Waiting for admin to add dates'
       ),
       scheduleDates.length>0&&h('div',{style:{marginBottom:16}},
-        h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}},
+        h('div',{style:{marginBottom:8}},
           h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',letterSpacing:'.08em',textTransform:'uppercase'}},'// Your Availability'),
-          isAdmin&&getBestSlots().length>0&&h('button',{
-            onClick:scheduleBestSlot,
-            style:{background:'#2EA55A',color:'#0D1117',border:'none',padding:'6px 14px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em'}
-          },'⭐ Schedule Best Slot'),
           // Tie picker
           bestSlotOptions.length>1&&h('div',{style:{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.75)',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center',padding:20},
             onClick:function(e){if(e.target===e.currentTarget)setBestSlotOptions([]);}},
@@ -1911,33 +1913,6 @@ function Schedule(p){
         ),
         h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:8}},'// Team Overlap'),
         h('div',{style:{position:'relative'}},
-        // Hover tooltip
-        hoverSlot&&h('div',{style:{
-          position:'fixed',
-          top:hoverSlot.y,left:hoverSlot.x,
-          background:'#161B22',border:'1px solid #1B6E3C',
-          padding:'10px 14px',zIndex:300,minWidth:150,
-          pointerEvents:'none',boxShadow:'0 4px 20px rgba(0,0,0,.6)'
-        }},
-          h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',marginBottom:6}},
-            fmtDate(hoverSlot.date)+' · '+fmtH(hoverSlot.hour)
-          ),
-          h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',marginBottom:6}},
-            hoverSlot.who.free.length+'/'+MEMBERS.length+' available'
-          ),
-          hoverSlot.who.free.map(function(m){
-            return h('div',{key:m.id,style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
-              h('span',{style:{color:'#2EA55A',fontSize:11}},'✅'),
-              h('span',{style:{fontSize:11,color:'#F0EDE8'}},m.name)
-            );
-          }),
-          hoverSlot.who.busy.map(function(m){
-            return h('div',{key:m.id,style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
-              h('span',{style:{color:'#E8251F',fontSize:11}},'—'),
-              h('span',{style:{fontSize:11,color:'#4A5568'}},m.name)
-            );
-          })
-        ),
         h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch'}},
           h('table',{style:{borderCollapse:'collapse',fontFamily:'Space Mono,monospace',fontSize:11}},
             h('thead',null,
@@ -1982,6 +1957,22 @@ function Schedule(p){
                 );
               })
             )
+          )
+        ),
+        // Hover info panel
+        hoverSlot&&h('div',{style:{background:'rgba(27,110,60,.12)',border:'1px solid #1B6E3C',padding:'12px 16px',marginTop:8}},
+          h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8,flexWrap:'wrap',gap:6}},
+            h('div',{className:'mono',style:{fontSize:10,color:'#FFE600'}},fmtDate(hoverSlot.date)+' · '+fmtH(hoverSlot.hour)),
+            h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A'}},hoverSlot.who.free.length+'/'+MEMBERS.length+' available')
+          ),
+          h('div',{style:{display:'flex',flexWrap:'wrap',gap:6}},
+            MEMBERS.map(function(m){
+              var free=hoverSlot.who.free.indexOf(m)>-1||hoverSlot.who.free.filter(function(fm){return fm.id===m.id;}).length>0;
+              return h('div',{key:m.id,style:{display:'flex',alignItems:'center',gap:4,padding:'3px 8px',background:free?'rgba(46,165,90,.15)':'rgba(232,37,31,.08)',border:'1px solid '+(free?'#2EA55A':'rgba(232,37,31,.3)')}},
+                h('span',{style:{fontSize:10}},(free?'✅':'—')),
+                h('span',{style:{fontSize:11,color:free?'#F0EDE8':'#4A5568',fontFamily:'Space Mono,monospace'}},m.name)
+              );
+            })
           )
         ),
         // Legend
