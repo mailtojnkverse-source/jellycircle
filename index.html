@@ -1528,13 +1528,15 @@ function Schedule(p){
 
   function addDateRange(){
     if(!dateRangeStart||!dateRangeEnd)return;
-    var start=new Date(dateRangeStart+'T00:00:00');
-    var end=new Date(dateRangeEnd+'T00:00:00');
-    if(start>end){alert('Start date must be before end date');return;}
+    if(dateRangeStart>dateRangeEnd){alert('Start date must be before end date');return;}
     var nd=[].concat(scheduleDates);
-    var cur=new Date(start);
-    while(cur<=end){
-      var iso=cur.toISOString().slice(0,10);
+    var cur=new Date(dateRangeStart+'T12:00:00');
+    var endD=new Date(dateRangeEnd+'T12:00:00');
+    while(cur<=endD){
+      var y=cur.getFullYear();
+      var mo=String(cur.getMonth()+1).padStart(2,'0');
+      var dy=String(cur.getDate()).padStart(2,'0');
+      var iso=y+'-'+mo+'-'+dy;
       if(nd.indexOf(iso)<0)nd.push(iso);
       cur.setDate(cur.getDate()+1);
     }
