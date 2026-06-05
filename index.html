@@ -2251,7 +2251,7 @@ function App(){
 
   function showToast(msg){setToast(msg);setTimeout(function(){setToast(null);},2500);}
   function login(n){lsSet('jc_user',n);setUser(n);}
-  function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setPage('dashboard');unlockScroll();}
+  function logout(){lsSet('jc_user',null);setUser(null);setTasks([]);setLoaded(false);}
 
   // Lock/unlock body scroll when modal opens/closes on mobile
   function lockScroll(){document.body.style.overflow='hidden';}
