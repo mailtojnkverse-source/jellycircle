@@ -1458,38 +1458,32 @@ function Schedule(p){
 
   function getActiveTZ(){return myTZ==='device'?deviceTZ:myTZ;}
 
-  // Convert a local hour in a given timezone to UTC hour for storage
-  function localToUTC(date,localHour,tz){
+  // Get the UTC offset in hours for a timezone
+  function getTZOffset(tz){
     try{
-      var dt=new Date(date+'T'+String(localHour).padStart(2,'0')+':00:00');
-      var localStr=dt.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false});
-      var localH=parseInt(localStr)||0;
-      var diff=localHour-localH;
-      return((localHour-diff+24)%24);
-    }catch(e){return localHour;}
+      var now=new Date();
+      var local=new Date(now.toLocaleString('en-US',{timeZone:tz}));
+      var utcDate=new Date(now.toLocaleString('en-US',{timeZone:'UTC'}));
+      return Math.round((local-utcDate)/3600000);
+    }catch(ex){return 0;}
   }
 
-  // Convert a UTC hour to local hour in a given timezone
-  function utcToLocal(date,utcHour,tz){
-    try{
-      var dt=new Date(date+'T'+String(utcHour).padStart(2,'0')+':00:00Z');
-      var utcH=parseInt(dt.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
-      return utcH;
-    }catch(e){return utcHour;}
+  // Store as "tz_hour" key so different timezones map correctly
+  function slotKey(date,hour,tz){
+    var offset=getTZOffset(tz);
+    var utcH=((hour-offset)%24+24)%24;
+    return date+'__'+utcH;
   }
 
-  function slotKey(date,utcHour){return date+'__'+utcHour;}
-
-  function isMine(date,localHour){
+  function isMine(date,hour){
     var tz=getActiveTZ();
-    var utcHour=localToUTC(date,localHour,tz);
-    return !!(avail[user]&&avail[user][slotKey(date,utcHour)]);
+    var key=slotKey(date,hour,tz);
+    return !!(avail[user]&&avail[user][key]);
   }
 
-  function toggleSlot(date,localHour){
+  function toggleSlot(date,hour){
     var tz=getActiveTZ();
-    var utcHour=localToUTC(date,localHour,tz);
-    var key=slotKey(date,utcHour);
+    var key=slotKey(date,hour,tz);
     var mine=Object.assign({},avail[user]||{});
     if(mine[key]){delete mine[key];}else{mine[key]=true;}
     var newAvail=Object.assign({},avail);
@@ -1497,19 +1491,17 @@ function Schedule(p){
     p.onSave({availability:newAvail,dates:scheduleDates});
   }
 
-  function getCount(date,localHour){
+  function getCount(date,hour){
     var tz=getActiveTZ();
-    var utcHour=localToUTC(date,localHour,tz);
-    var key=slotKey(date,utcHour);
+    var key=slotKey(date,hour,tz);
     var n=0;
     Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])n++;});
     return n;
   }
 
-  function getWho(date,localHour){
+  function getWho(date,hour){
     var tz=getActiveTZ();
-    var utcHour=localToUTC(date,localHour,tz);
-    var key=slotKey(date,utcHour);
+    var key=slotKey(date,hour,tz);
     var free=[],busy=[];
     MEMBERS.forEach(function(m){
       if(scheduleDates.length===0)return;
