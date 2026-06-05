@@ -1847,15 +1847,15 @@ function Schedule(p){
               )
             ),
             h('button',{className:'btn-g',onClick:addDateRange},'+ Add Range'),
-            scheduleDates.length>0&&h('button',{className:'btn-r',style:{fontSize:11,padding:'7px 12px'},onClick:clearAllDates},'Clear All')
-          ),
-          isAdmin&&getBestSlots().length>0&&h('button',{
-            onClick:scheduleBestSlot,
-            className:'sched-best-btn',
-            style:{background:'#2EA55A',color:'#0D1117',border:'none',padding:'7px 14px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em',alignSelf:'flex-end'}
-          },
-            h('span',{className:'sched-btn-full'},'⭐ Schedule Best Slot'),
-            h('span',{className:'sched-btn-short'},'⭐ Schedule')
+            scheduleDates.length>0&&h('button',{className:'btn-r',style:{fontSize:11,padding:'7px 12px'},onClick:clearAllDates},'Clear All'),
+            isAdmin&&getBestSlots().length>0&&h('button',{
+              onClick:scheduleBestSlot,
+              className:'sched-best-btn',
+              style:{background:'#2EA55A',color:'#0D1117',border:'none',padding:'7px 14px',fontFamily:'Space Mono,monospace',fontSize:10,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em'}
+            },
+              h('span',{className:'sched-btn-full'},'⭐ Schedule Best Slot'),
+              h('span',{className:'sched-btn-short'},'⭐ Schedule')
+            )
           )
         )
       ),
