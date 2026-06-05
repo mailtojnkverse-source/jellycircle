@@ -1445,6 +1445,142 @@ function Schedule(p){
     fbSaveTZList(list);
   }
 
+  // ── When2Meet state ────────────────────────────────────────────────────────
+  var deviceTZ=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  var sHover=useState(null),hoverSlot=sHover[0],setHoverSlot=sHover[1];
+  var sMyTZ=useState('device'),myTZ=sMyTZ[0],setMyTZ=sMyTZ[1];
+  var sWinStart=useState(8),winStart=sWinStart[0],setWinStart=sWinStart[1];
+  var sWinEnd=useState(22),winEnd=sWinEnd[0],setWinEnd=sWinEnd[1];
+  var schedule=p.schedule||{};
+  var avail=schedule.availability||{};
+  var scheduleDates=schedule.dates||[];
+  var sDateIn=useState(''),dateInput=sDateIn[0],setDateInput=sDateIn[1];
+
+  function getActiveTZ(){return myTZ==='device'?deviceTZ:myTZ;}
+
+  // Convert a local hour in a given timezone to UTC hour for storage
+  function localToUTC(date,localHour,tz){
+    try{
+      var dt=new Date(date+'T'+String(localHour).padStart(2,'0')+':00:00');
+      var localStr=dt.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false});
+      var localH=parseInt(localStr)||0;
+      var diff=localHour-localH;
+      return((localHour-diff+24)%24);
+    }catch(e){return localHour;}
+  }
+
+  // Convert a UTC hour to local hour in a given timezone
+  function utcToLocal(date,utcHour,tz){
+    try{
+      var dt=new Date(date+'T'+String(utcHour).padStart(2,'0')+':00:00Z');
+      var h=parseInt(dt.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
+      return h;
+    }catch(e){return utcHour;}
+  }
+
+  function slotKey(date,utcHour){return date+'__'+utcHour;}
+
+  function isMine(date,localHour){
+    var tz=getActiveTZ();
+    var utcHour=localToUTC(date,localHour,tz);
+    return !!(avail[user]&&avail[user][slotKey(date,utcHour)]);
+  }
+
+  function toggleSlot(date,localHour){
+    var tz=getActiveTZ();
+    var utcHour=localToUTC(date,localHour,tz);
+    var key=slotKey(date,utcHour);
+    var mine=Object.assign({},avail[user]||{});
+    if(mine[key]){delete mine[key];}else{mine[key]=true;}
+    var newAvail=Object.assign({},avail);
+    newAvail[user]=mine;
+    p.onSave({availability:newAvail,dates:scheduleDates});
+  }
+
+  function getCount(date,localHour){
+    var tz=getActiveTZ();
+    var utcHour=localToUTC(date,localHour,tz);
+    var key=slotKey(date,utcHour);
+    var n=0;
+    Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])n++;});
+    return n;
+  }
+
+  function getWho(date,localHour){
+    var tz=getActiveTZ();
+    var utcHour=localToUTC(date,localHour,tz);
+    var key=slotKey(date,utcHour);
+    var free=[],busy=[];
+    MEMBERS.forEach(function(m){
+      if(scheduleDates.length===0)return;
+      if(avail[m.name]&&avail[m.name][key])free.push(m);
+      else busy.push(m);
+    });
+    return{free:free,busy:busy};
+  }
+
+  function addDate(){
+    if(!dateInput)return;
+    if(scheduleDates.indexOf(dateInput)>-1){alert('Date already added');return;}
+    var nd=[].concat(scheduleDates,[dateInput]).sort();
+    p.onSave({availability:avail,dates:nd});
+    setDateInput('');
+  }
+
+  function removeDate(d){
+    var nd=scheduleDates.filter(function(x){return x!==d;});
+    var na={};
+    Object.keys(avail).forEach(function(name){
+      var slots={};
+      Object.keys(avail[name]||{}).forEach(function(k){if(k.indexOf(d+'__')!==0)slots[k]=true;});
+      na[name]=slots;
+    });
+    p.onSave({availability:na,dates:nd});
+  }
+
+  function clearMine(){
+    var na=Object.assign({},avail);
+    na[user]={};
+    p.onSave({availability:na,dates:scheduleDates});
+  }
+
+  function fmtDate(d){
+    var dt=new Date(d+'T00:00:00');
+    return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  }
+
+  function slotBg(count){
+    if(count===0)return 'transparent';
+    var pct=count/MEMBERS.length;
+    if(pct>=0.8)return 'rgba(46,165,90,.8)';
+    if(pct>=0.5)return 'rgba(46,165,90,.5)';
+    if(pct>=0.25)return 'rgba(46,165,90,.3)';
+    return 'rgba(46,165,90,.15)';
+  }
+
+  var TZ_OPTIONS=[
+    ['device','Current Device Time ('+deviceTZ.split('/').pop().replace(/_/g,' ')+')',],
+    ['UTC','UTC — Universal Time'],
+    ['Africa/Cairo','Cairo (GMT+2)'],['Africa/Nairobi','Nairobi (GMT+3)'],
+    ['America/New_York','New York (GMT-5)'],['America/Chicago','Chicago (GMT-6)'],
+    ['America/Los_Angeles','Los Angeles (GMT-8)'],['America/Sao_Paulo','São Paulo (GMT-3)'],
+    ['Asia/Dubai','Dubai (GMT+4)'],['Asia/Kolkata','Mumbai / Delhi (GMT+5:30)'],
+    ['Asia/Bangkok','Bangkok (GMT+7)'],['Asia/Ho_Chi_Minh','Vietnam (GMT+7)'],
+    ['Asia/Singapore','Singapore (GMT+8)'],['Asia/Hong_Kong','Hong Kong (GMT+8)'],
+    ['Asia/Shanghai','Shanghai (GMT+8)'],['Asia/Tokyo','Tokyo (GMT+9)'],
+    ['Asia/Seoul','Seoul (GMT+9)'],['Asia/Manila','Manila (GMT+8)'],
+    ['Asia/Kuala_Lumpur','Kuala Lumpur (GMT+8)'],['Asia/Jakarta','Jakarta (GMT+7)'],
+    ['Australia/Sydney','Sydney (GMT+11)'],
+    ['Europe/London','London (GMT+0)'],['Europe/Paris','Paris (GMT+1)'],
+    ['Europe/Berlin','Berlin (GMT+1)'],['Europe/Moscow','Moscow (GMT+3)'],
+    ['Europe/Istanbul','Istanbul (GMT+3)'],
+    ['Pacific/Auckland','Auckland (GMT+13)'],['Pacific/Honolulu','Honolulu (GMT-10)'],
+  ];
+
+  var meetHours=[];for(var wh=winStart;wh<=winEnd;wh++)meetHours.push(wh);
+  var fmtH=function(h){return h===0?'12 AM':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';};
+  var allHours=[];for(var ah=0;ah<24;ah++)allHours.push(ah);
+
   function addTZ(){
     var v=newTZ.trim();
     if(!v)return;
@@ -1574,6 +1710,143 @@ function Schedule(p){
               })
             );
           })
+        )
+      )
+    ),
+
+    // ── When to Meet ──────────────────────────────────────────────────────────
+    h('div',{className:'card',style:{padding:20,marginTop:20}},
+      h('div',{className:'mono',style:{fontSize:10,color:'#2EA55A',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// When to Meet'),
+      // Controls row
+      h('div',{style:{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14,alignItems:'center'}},
+        h('div',{style:{flex:1,minWidth:160}},
+          h('label',null,'Your Timezone'),
+          h('select',{value:myTZ,onChange:function(e){setMyTZ(e.target.value);},
+            style:{display:'block',width:'100%',padding:'7px 28px 7px 10px',border:'1px solid #2EA55A',background:'#0D1117',color:'#F0EDE8',fontFamily:'Space Grotesk,sans-serif',fontSize:12,cursor:'pointer',WebkitAppearance:'none',appearance:'none',outline:'none',boxSizing:'border-box'}},
+            TZ_OPTIONS.map(function(t){return h('option',{key:t[0],value:t[0]},t[1]);})
+          )
+        ),
+        h('div',{style:{display:'flex',gap:6,alignItems:'flex-end'}},
+          h('div',null,
+            h('label',null,'From'),
+            h('select',{value:winStart,onChange:function(e){setWinStart(parseInt(e.target.value));},
+              style:{display:'block',padding:'7px 24px 7px 10px',border:'1px solid #2EA55A',background:'#0D1117',color:'#F0EDE8',fontFamily:'Space Grotesk,sans-serif',fontSize:12,cursor:'pointer',WebkitAppearance:'none',appearance:'none',outline:'none'}},
+              allHours.map(function(h2){return h('option',{key:h2,value:h2},fmtH(h2));})
+            )
+          ),
+          h('div',null,
+            h('label',null,'To'),
+            h('select',{value:winEnd,onChange:function(e){setWinEnd(parseInt(e.target.value));},
+              style:{display:'block',padding:'7px 24px 7px 10px',border:'1px solid #2EA55A',background:'#0D1117',color:'#F0EDE8',fontFamily:'Space Grotesk,sans-serif',fontSize:12,cursor:'pointer',WebkitAppearance:'none',appearance:'none',outline:'none'}},
+              allHours.map(function(h2){return h('option',{key:h2,value:h2},fmtH(h2));})
+            )
+          )
+        ),
+        h('button',{className:'btn-r',style:{fontSize:11,padding:'6px 12px',alignSelf:'flex-end'},onClick:clearMine},'Clear Mine')
+      ),
+      isAdmin&&h('div',{style:{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}},
+        h('div',{style:{border:'1px solid #2EA55A',background:'#0D1117',flexShrink:0}},
+          h('input',{type:'date',value:dateInput,onChange:function(e){setDateInput(e.target.value);},
+            style:{display:'block',border:'none',outline:'none',background:'transparent',color:'#F0EDE8',padding:'8px 12px',fontFamily:'Space Grotesk,sans-serif',fontSize:13,colorScheme:'dark'}})
+        ),
+        h('button',{className:'btn-g',onClick:addDate},'+ Add Date')
+      ),
+      scheduleDates.length===0&&h('div',{className:'mono',style:{color:'#4A5568',fontSize:12,padding:'20px 0',textAlign:'center'}},
+        isAdmin?'// Add dates above to start':'// Waiting for admin to add dates'
+      ),
+      scheduleDates.length>0&&h('div',{style:{position:'relative'}},
+        // Hover tooltip
+        hoverSlot&&h('div',{style:{
+          position:'fixed',
+          top:hoverSlot.y,left:hoverSlot.x,
+          background:'#161B22',border:'1px solid #1B6E3C',
+          padding:'10px 14px',zIndex:300,minWidth:150,
+          pointerEvents:'none',boxShadow:'0 4px 20px rgba(0,0,0,.6)'
+        }},
+          h('div',{className:'mono',style:{fontSize:9,color:'#FFE600',marginBottom:6}},
+            fmtDate(hoverSlot.date)+' · '+fmtH(hoverSlot.hour)
+          ),
+          h('div',{className:'mono',style:{fontSize:9,color:'#2EA55A',marginBottom:6}},
+            hoverSlot.who.free.length+'/'+MEMBERS.length+' available'
+          ),
+          hoverSlot.who.free.map(function(m){
+            return h('div',{key:m.id,style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+              h('span',{style:{color:'#2EA55A',fontSize:11}},'✅'),
+              h('span',{style:{fontSize:11,color:'#F0EDE8'}},m.name)
+            );
+          }),
+          hoverSlot.who.busy.map(function(m){
+            return h('div',{key:m.id,style:{display:'flex',alignItems:'center',gap:6,marginBottom:2}},
+              h('span',{style:{color:'#E8251F',fontSize:11}},'—'),
+              h('span',{style:{fontSize:11,color:'#4A5568'}},m.name)
+            );
+          })
+        ),
+        h('div',{style:{overflowX:'auto',WebkitOverflowScrolling:'touch'}},
+          h('table',{style:{borderCollapse:'collapse',fontFamily:'Space Mono,monospace',fontSize:11}},
+            h('thead',null,
+              h('tr',null,
+                h('th',{style:{padding:'6px 10px',border:'1px solid #1B6E3C',background:'#161B22',color:'#2EA55A',whiteSpace:'nowrap',position:'sticky',left:0,zIndex:2,minWidth:55}},'Time'),
+                scheduleDates.map(function(d){
+                  return h('th',{key:d,style:{padding:'6px 10px',border:'1px solid #1B6E3C',background:'#161B22',color:'#FFE600',textAlign:'center',whiteSpace:'nowrap',minWidth:80}},
+                    h('div',{style:{display:'flex',alignItems:'center',gap:4,justifyContent:'center'}},
+                      fmtDate(d),
+                      isAdmin&&h('span',{onClick:function(){removeDate(d);},
+                        style:{cursor:'pointer',color:'#E8251F',fontSize:13,marginLeft:4,lineHeight:1}},'×')
+                    )
+                  );
+                })
+              )
+            ),
+            h('tbody',null,
+              meetHours.map(function(hour){
+                return h('tr',{key:hour},
+                  h('td',{style:{padding:'3px 10px',border:'1px solid #1B2030',color:'#9CA3AF',whiteSpace:'nowrap',position:'sticky',left:0,background:'#0D1117',zIndex:1}},
+                    fmtH(hour)
+                  ),
+                  scheduleDates.map(function(d){
+                    var mine=isMine(d,hour);
+                    var count=getCount(d,hour);
+                    return h('td',{key:d,
+                      style:{
+                        padding:'3px 6px',border:'1px solid #1B2030',
+                        background:mine?'rgba(255,230,0,.25)':slotBg(count),
+                        cursor:'pointer',textAlign:'center',
+                        outline:mine?'2px solid #FFE600':'none',
+                        outlineOffset:'-2px',
+                        transition:'background .1s',
+                        minWidth:70
+                      },
+                      onClick:function(){toggleSlot(d,hour);},
+                      onMouseEnter:function(e){
+                        var rect=e.currentTarget.getBoundingClientRect();
+                        setHoverSlot({date:d,hour:hour,who:getWho(d,hour),x:rect.left,y:rect.bottom+4});
+                      },
+                      onMouseLeave:function(){setHoverSlot(null);}
+                    },
+                      count>0&&h('span',{style:{fontSize:10,color:count>=MEMBERS.length*0.8?'#FFE600':'#F0EDE8',fontWeight:700}},count),
+                      !count&&mine&&h('span',{style:{fontSize:10,color:'#FFE600'}},'✓')
+                    );
+                  })
+                );
+              })
+            )
+          )
+        ),
+        // Legend
+        h('div',{style:{display:'flex',gap:12,marginTop:10,flexWrap:'wrap'}},
+          h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+            h('div',{style:{width:14,height:14,background:'rgba(255,230,0,.25)',outline:'2px solid #FFE600',outlineOffset:'-2px'}}),
+            h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},"You're free")
+          ),
+          h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+            h('div',{style:{width:14,height:14,background:'rgba(46,165,90,.5)'}}),
+            h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},'Others free')
+          ),
+          h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+            h('div',{style:{width:14,height:14,background:'rgba(46,165,90,.8)'}}),
+            h('span',{style:{fontSize:11,color:'#9CA3AF',fontFamily:'Space Mono,monospace'}},'Most free')
+          )
         )
       )
     )
