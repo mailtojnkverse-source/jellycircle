@@ -1473,8 +1473,8 @@ function Schedule(p){
   function utcToLocal(date,utcHour,tz){
     try{
       var dt=new Date(date+'T'+String(utcHour).padStart(2,'0')+':00:00Z');
-      var h=parseInt(dt.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
-      return h;
+      var utcH=parseInt(dt.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
+      return utcH;
     }catch(e){return utcHour;}
   }
 
@@ -1607,8 +1607,8 @@ function Schedule(p){
       var userTZ=Intl.DateTimeFormat().resolvedOptions().timeZone;
       var midnight=new Date(now.toLocaleDateString('en-US',{timeZone:userTZ}));
       var t=new Date(midnight.getTime()+hour*3600000);
-      var h=parseInt(t.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
-      return h>=9&&h<18;
+      var workH=parseInt(t.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false}))||0;
+      return workH>=9&&workH<18;
     }catch(e){return false;}
   }
 
