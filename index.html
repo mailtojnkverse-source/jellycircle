@@ -506,7 +506,7 @@ function fbSubSchedule(cb){
 }
 function fbSaveSchedule(data){
   var fs=gFS();
-  return fs.setDoc(fs.doc(gDB(),'schedule','current'),data,{merge:true});
+  return fs.setDoc(fs.doc(gDB(),'schedule','current'),data);
 }
 function fbSaveTZList(list){
   var fs=gFS();
@@ -1476,25 +1476,26 @@ function Schedule(p){
   }
 
   // Store as "tz_hour" key so different timezones map correctly
-  function slotKey(date,hour,tz){
-    // Store as localHour__timezone so key is always deterministic
-    var safeTZ=(tz||'UTC').replace(/[^A-Za-z0-9_]/g,'_');
-    return date+'__'+hour+'__'+safeTZ;
+  function slotKey(date,hour){
+    return date+'__'+hour;
   }
 
   function isMine(date,hour){
-    var tz=getActiveTZ();
-    var key=slotKey(date,hour,tz);
+    var key=slotKey(date,hour);
     return !!(avail[user]&&avail[user][key]);
   }
 
   function toggleSlot(date,hour){
-    var tz=getActiveTZ();
-    var key=slotKey(date,hour,tz);
-    var currentVal=avail[user]&&avail[user][key];
+    var key=slotKey(date,hour);
     var mine={};
-    if(avail[user]){Object.keys(avail[user]).forEach(function(k){mine[k]=avail[user][k];});}
-    if(currentVal){delete mine[key];}else{mine[key]=true;}
+    if(avail[user]){
+      Object.keys(avail[user]).forEach(function(k){mine[k]=avail[user][k];});
+    }
+    if(mine[key]){
+      delete mine[key];
+    } else {
+      mine[key]=true;
+    }
     var newAvail={};
     Object.keys(avail).forEach(function(k){newAvail[k]=avail[k];});
     newAvail[user]=mine;
@@ -1502,16 +1503,14 @@ function Schedule(p){
   }
 
   function getCount(date,hour){
-    var tz=getActiveTZ();
-    var key=slotKey(date,hour,tz);
+    var key=slotKey(date,hour);
     var n=0;
     Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])n++;});
     return n;
   }
 
   function getWho(date,hour){
-    var tz=getActiveTZ();
-    var key=slotKey(date,hour,tz);
+    var key=slotKey(date,hour);
     var free=[],busy=[];
     MEMBERS.forEach(function(m){
       if(scheduleDates.length===0)return;
@@ -1572,8 +1571,7 @@ function Schedule(p){
     var bestCount=0,slots=[];
     scheduleDates.forEach(function(d){
       meetHours.forEach(function(hr){
-        var tz=getActiveTZ();
-        var key=slotKey(d,hr,tz);
+        var key=slotKey(d,hr);
         var n=0;
         Object.keys(avail).forEach(function(name){if(avail[name]&&avail[name][key])n++;});
         if(n>0){
