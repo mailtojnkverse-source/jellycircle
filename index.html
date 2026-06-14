@@ -10,24 +10,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg:var(--bg);--surface:var(--surface);--surface2:#1A2030;
-  --border:var(--border);--border2:#243040;
-  --text:var(--text);--text2:var(--text2);--text3:var(--text3);
+  --bg:#1C1C1E;--surface:#2C2C2E;--surface2:#3A3A3C;
+  --border:#3A7A50;--border2:#2A4A38;
+  --text:#F5F5F0;--text2:#AEAEB2;--text3:#6C6C70;
   --accent:#E85D26;--accent-text:#fff;
-  --green:var(--green);--green-dim:rgba(46,165,90,.12);
-  --red:var(--red);--red-dim:rgba(232,37,31,.12);
-  --yellow:var(--yellow);--yellow-dim:rgba(255,230,0,.1);
-  --sidebar:#0A0F14;
+  --green:#34C768;--green-dim:rgba(52,199,104,.12);
+  --red:#FF453A;--red-dim:rgba(255,69,58,.12);
+  --yellow:#FFD60A;--yellow-dim:rgba(255,214,10,.1);
+  --sidebar:#111113;
 }
 [data-theme="day"]{
-  --bg:#F5F4F0;--surface:#FFFFFF;--surface2:#EDEBE6;
-  --border:#D8D5CE;--border2:#C8C5BE;
-  --text:#0D0D0D;--text2:#555550;--text3:#999990;
+  --bg:#FFF2DE;--surface:#FFECD0;--surface2:#FFE4BC;
+  --border:#D4A85A;--border2:#C49040;
+  --text:#1A0F00;--text2:#4A3520;--text3:#7A6040;
   --accent:#E85D26;--accent-text:#fff;
-  --green:#1A7A3F;--green-dim:rgba(26,122,63,.1);
-  --red:#C0392B;--red-dim:rgba(192,57,43,.1);
-  --yellow:#D4820A;--yellow-dim:rgba(212,130,10,.1);
-  --sidebar:#1A1A1A;
+  --green:#1A6B35;--green-dim:rgba(26,107,53,.12);
+  --red:#B83020;--red-dim:rgba(184,48,32,.12);
+  --yellow:#C07010;--yellow-dim:rgba(192,112,16,.12);
+  --sidebar:#2C1A00;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -371,37 +371,37 @@ var useRef = React.useRef;
 
 // Global theme tokens — updated by App on every render
 var T={
-  bg:'#0D1117',surface:'#161B22',surface2:'#1A2030',
-  border:'#1B6E3C',border2:'#243040',
-  text:'#F0EDE8',text2:'#9CA3AF',text3:'#4A5568',
+  bg:'#1C1C1E',surface:'#2C2C2E',surface2:'#3A3A3C',
+  border:'#3A7A50',border2:'#2A4A38',
+  text:'#F5F5F0',text2:'#AEAEB2',text3:'#6C6C70',
   accent:'#E85D26',accentText:'#FFFFFF',
-  green:'#2EA55A',greenDim:'rgba(46,165,90,.12)',
-  red:'#E8251F',redDim:'rgba(232,37,31,.12)',
-  yellow:'#FFE600',yellowDim:'rgba(255,230,0,.1)',
-  sidebar:'#0A0F14',sidebarText:'#F0EDE8',sidebarBorder:'#1B6E3C',
-  overlay:'rgba(13,17,23,.85)'
+  green:'#34C768',greenDim:'rgba(52,199,104,.12)',
+  red:'#FF453A',redDim:'rgba(255,69,58,.12)',
+  yellow:'#FFD60A',yellowDim:'rgba(255,214,10,.1)',
+  sidebar:'#111113',sidebarText:'#F5F5F0',sidebarBorder:'#3A7A50',
+  overlay:'rgba(28,28,30,.88)'
 };
 var NIGHT_T={
-  bg:'#0D1117',surface:'#161B22',surface2:'#1A2030',
-  border:'#1B6E3C',border2:'#243040',
-  text:'#F0EDE8',text2:'#9CA3AF',text3:'#4A5568',
+  bg:'#1C1C1E',surface:'#2C2C2E',surface2:'#3A3A3C',
+  border:'#3A7A50',border2:'#2A4A38',
+  text:'#F5F5F0',text2:'#AEAEB2',text3:'#6C6C70',
   accent:'#E85D26',accentText:'#FFFFFF',
-  green:'#2EA55A',greenDim:'rgba(46,165,90,.12)',
-  red:'#E8251F',redDim:'rgba(232,37,31,.12)',
-  yellow:'#FFE600',yellowDim:'rgba(255,230,0,.1)',
-  sidebar:'#0A0F14',sidebarText:'#F0EDE8',sidebarBorder:'#1B6E3C',
-  overlay:'rgba(13,17,23,.85)'
+  green:'#34C768',greenDim:'rgba(52,199,104,.12)',
+  red:'#FF453A',redDim:'rgba(255,69,58,.12)',
+  yellow:'#FFD60A',yellowDim:'rgba(255,214,10,.1)',
+  sidebar:'#111113',sidebarText:'#F5F5F0',sidebarBorder:'#3A7A50',
+  overlay:'rgba(28,28,30,.88)'
 };
 var DAY_T={
-  bg:'#F5F4F0',surface:'#FFFFFF',surface2:'#EDEBE6',
-  border:'#C8C5BE',border2:'#B8B5AE',
-  text:'#0D0D0D',text2:'#555550',text3:'#888880',
+  bg:'#FFF2DE',surface:'#FFECD0',surface2:'#FFE4BC',
+  border:'#D4A85A',border2:'#C49040',
+  text:'#1A0F00',text2:'#4A3520',text3:'#7A6040',
   accent:'#E85D26',accentText:'#FFFFFF',
-  green:'#1A7A3F',greenDim:'rgba(26,122,63,.1)',
-  red:'#C0392B',redDim:'rgba(192,57,43,.1)',
-  yellow:'#D4820A',yellowDim:'rgba(212,130,10,.1)',
-  sidebar:'#1A1A1A',sidebarText:'#F0EDE8',sidebarBorder:'#333',
-  overlay:'rgba(240,240,235,.9)'
+  green:'#1A6B35',greenDim:'rgba(26,107,53,.12)',
+  red:'#B83020',redDim:'rgba(184,48,32,.12)',
+  yellow:'#C07010',yellowDim:'rgba(192,112,16,.12)',
+  sidebar:'#2C1A00',sidebarText:'#FFF2DE',sidebarBorder:'#6B4020',
+  overlay:'rgba(255,242,222,.9)'
 };
 function applyTheme(t){
   var tokens=t==='day'?DAY_T:NIGHT_T;
