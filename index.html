@@ -30,22 +30,7 @@
   --purple:#9B59B6;
   --sidebar:rgba(14,14,18,.95);
 }
-[data-theme="day"]{
-  --bg:#FFF2DE;
-  --surface:rgba(255,235,200,.92);
-  --surface2:rgba(255,225,180,.88);
-  --glass:rgba(255,235,200,.85);
-  --glass-border:rgba(180,110,40,.35);
-  --border:rgba(180,110,40,.35);
-  --text:#1A0800;
-  --text2:#4A2800;
-  --text3:#7A5030;
-  --accent:#E85D26;--accent-text:#fff;
-  --green:#0F5A28;--green-dim:rgba(15,90,40,.15);
-  --red:#9B1F14;--red-dim:rgba(155,31,20,.12);
-  --yellow:#8B5000;--yellow-dim:rgba(139,80,0,.12);
-  --sidebar:rgba(40,20,0,.95);
-}
+
 
 /* ── RESET & BASE ───────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0}
@@ -512,9 +497,8 @@ var DAY_T={
   overlay:'rgba(30,15,0,.75)'
 };
 function applyTheme(t){
-  var tokens=t==='day'?DAY_T:NIGHT_T;
-  Object.keys(tokens).forEach(function(k){T[k]=tokens[k];});
-  document.documentElement.setAttribute('data-theme',t==='day'?'day':'');
+  Object.keys(NIGHT_T).forEach(function(k){T[k]=NIGHT_T[k];});
+  document.documentElement.removeAttribute('data-theme');
 }
 // Apply saved theme immediately
 try{var _st=localStorage.getItem('jc_theme');if(_st)applyTheme(_st);}catch(e){}
@@ -1545,7 +1529,7 @@ function MobileBar(p){
     h('img',{src:LOGO,alt:'JC',onClick:function(){p.onDash&&p.onDash();},style:{width:32,height:32,borderRadius:'50%',objectFit:'cover',border:'2px solid #FF3D8B',flexShrink:0,cursor:'pointer'}}),
     h('span',{onClick:function(){p.onDash&&p.onDash();},style:{fontSize:16,fontWeight:700,color:T.text,flex:1,cursor:'pointer'}},'Jelly Circle'),
     p.overdueCount>0&&h('span',{style:{background:'#E8251F',color:'#fff',padding:'3px 8px',fontSize:11,fontFamily:'Space Mono,monospace',fontWeight:700,flexShrink:0}},p.overdueCount+' OD'),
-    h('button',{onClick:p.onToggleTheme,style:{background:'none',border:'none',cursor:'pointer',padding:'6px',fontSize:18,flexShrink:0,lineHeight:1}},p.theme==='day'?'🌙':'☀️'),
+
     h('button',{className:'burger-btn',onClick:p.onOpen,style:{background:'none',border:'none',cursor:'pointer',padding:'6px',display:'flex',flexDirection:'column',gap:5,flexShrink:0}},
       h('span',{style:{width:24,height:2,background:'var(--green)',display:'block'}}),
       h('span',{style:{width:24,height:2,background:'var(--green)',display:'block'}}),
@@ -2366,7 +2350,7 @@ function Sidebar(p){
           h('div',{style:{fontSize:12,fontWeight:600,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},p.user),
           h('div',{className:'mono',style:{fontSize:9,color:T.green,textTransform:'uppercase'}},'Online')
         ),
-        h('button',{onClick:p.onToggleTheme,style:{background:'none',border:'none',cursor:'pointer',fontSize:16,padding:'2px 6px',lineHeight:1}},p.theme==='day'?'🌙':'☀️'),
+
         h('button',{className:'sign-out',onClick:p.onLogout},'Sign Out')
       )
     )
@@ -2384,18 +2368,8 @@ function App(){
   function setPage(pg){setPageRaw(pg);try{localStorage.setItem('jc_page',pg);}catch(e){}}
   var s5=useState(null),modal=s5[0],setModalRaw=s5[1];
   var s12=useState(false),drawerOpen=s12[0],setDrawerOpen=s12[1];
-  var s16=useState(function(){
-    try{var t=localStorage.getItem('jc_theme');if(t)document.documentElement.setAttribute('data-theme',t);return t||'night';}
-    catch(e){return 'night';}
-  }()),theme=s16[0],setThemeRaw=s16[1];
-  function toggleTheme(){
-    var next=theme==='night'?'day':'night';
-    applyTheme(next);
-    setThemeRaw(next);
-    try{localStorage.setItem('jc_theme',next);}catch(e){}
-  }
-  // T is global — updated by applyTheme()
-  applyTheme(theme);
+  var theme='night';
+  applyTheme('night');
   var s14=useState(null),meeting=s14[0],setMeeting=s14[1];
   var s15=useState({}),schedule=s15[0],setSchedule=s15[1];
   var s6=useState(false),saving=s6[0],setSaving=s6[1];
@@ -2479,10 +2453,10 @@ function App(){
       h('div',{className:'blob blob-2'}),
       h('div',{className:'blob blob-3'})
     ),
-    h(Sidebar,{page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,meeting:meeting,onSaveMeeting:fbSaveMeeting,theme:theme,onToggleTheme:toggleTheme}),
+    h(Sidebar,{page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,meeting:meeting,onSaveMeeting:fbSaveMeeting}),
     h(Drawer,{open:drawerOpen,onClose:closeDrawer,page:page,setPage:setPage,tasks:tasks,user:user,onLogout:logout,pics:pics,meeting:meeting,onSaveMeeting:fbSaveMeeting,overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
     h('div',{className:'main-col'},
-      h(MobileBar,{onOpen:openDrawer,onDash:function(){setPage('dashboard');},overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length,theme:theme,onToggleTheme:toggleTheme}),
+      h(MobileBar,{onOpen:openDrawer,onDash:function(){setPage('dashboard');},overdueCount:tasks.filter(function(t){return t.status!=='Done'&&isOD(t.deadline);}).length}),
       h(Ticker,{tasks:tasks}),
       h('div',{className:'main-scroll'},
         page==='dashboard'&&h(Dashboard,{tasks:tasks,onNew:function(){setModal({});},pics:pics}),
