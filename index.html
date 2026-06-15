@@ -1101,6 +1101,7 @@ function Dashboard(p){
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 function Tasks(p){
   var tasks=p.tasks,pics=p.pics||{},onEdit=p.onEdit||function(){},onNew=p.onNew||function(){};
+  var sDoneAll=useState(false),showDoneAll=sDoneAll[0],setShowDoneAll=sDoneAll[1];
   var s1=useState('All'),tf=s1[0],setTf=s1[1];
   var s2=useState('All'),sf=s2[0],setSf=s2[1];
   var s3=useState('All Priority'),pf=s3[0],setPf=s3[1];
@@ -1136,6 +1137,155 @@ function Tasks(p){
   var dtOpts=[{v:'All Dates',l:'All Dates'},{v:'prev',l:'Prev Week'},{v:'this',l:'This Week'},{v:'next',l:'Next Week'}];
   var sortOpts=[{v:'createdAt',l:'Latest'},{v:'deadline',l:'Due Date'},{v:'title',l:'Name'}];
   var memOpts=[{v:'All People',l:'All People'}].concat(MEMBERS.map(function(m){return {v:m.name,l:m.name};}));
+  if(showDoneAll){
+    var allDone=filtered.filter(function(t){return t.status==='Done';}).sort(function(a,b){return b.createdAt-a.createdAt;});
+    return h('div',{className:'page fade-up'},
+      h('div',{style:{marginBottom:20,display:'flex',alignItems:'center',gap:12}},
+        h('button',{onClick:function(){setShowDoneAll(false);},style:{background:'transparent',border:'none',color:T.green,fontFamily:'Space Mono,monospace',fontSize:11,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.06em',padding:0}},
+          '← Board'
+        )
+      ),
+      h('div',{style:{marginBottom:20}},
+        h('div',{className:'mono',style:{fontSize:10,color:T.green,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Completed'),
+        h('h1',{style:{fontSize:40,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:'.04em',color:T.text,fontWeight:400}},'Done ',h('span',{className:'mono',style:{fontSize:15,color:T.green}},'['+allDone.length+']'))
+      ),
+      h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+        allDone.map(function(t){
+          var m=gmem(t.assignedTo);
+          return h('div',{key:t.id,className:'task-card',style:{padding:'12px 16px',display:'flex',alignItems:'center',gap:12,cursor:'pointer'},onClick:function(){onEdit(t);}},
+            h('div',{style:{flex:1,minWidth:0}},
+              h('div',{style:{display:'flex',gap:6,marginBottom:4,flexWrap:'wrap'}},h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})),
+              h('div',{style:{fontWeight:600,fontSize:14,color:T.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},t.title)
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:8,flexShrink:0}},
+              m&&h(Av,{m:m,sz:22,pics:pics}),
+              h('div',{className:'mono',style:{fontSize:10,color:T.text2,textAlign:'right'}},m?m.name:'—')
+            )
+          );
+        })
+      )
+    );
+  }
+
+  return h('div',{className:'page fade-up'},
+    h('div',{style:{marginBottom:24,display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:12}},
+      h('div',null,
+        h('div',{className:'mono',style:{fontSize:10,color:T.green,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Board'),
+        h('h1',{style:{fontSize:40,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:'.04em',color:T.text,fontWeight:400}},'Tasks ',h('span',{className:'mono',style:{fontSize:15,color:T.green}},'['+tasks.length+']'))
+      ),
+      h('button',{className:'btn-y',onClick:onNew},'+ New Task')
+    ),
+    h('div',{className:'filter-row'},
+      h('input',{placeholder:'Search...',value:q,onChange:function(e){setQ(e.target.value);},style:{flex:'1 1 180px',minWidth:120,maxWidth:240}}),
+      ['Business','Tech','Both'].reduce(function(opts,t){return opts.concat([{v:t,l:t}]);},[{v:'All',l:'All Teams'}]).map(function(o){
+        return h('button',{key:o.v,onClick:function(){setTf(o.v);},style:{background:tf===o.v?T.green:'transparent',color:tf===o.v?T.bg:T.text2,border:'1px solid '+(tf===o.v?T.green:T.border),padding:'6px 12px',fontFamily:'Space Mono,monospace',fontSize:10,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.05em',fontWeight:700,transition:'all .15s'}},o.l);
+      }),
+      h('div',{className:'sel-wrap'},
+        h('select',{value:sf,onChange:function(e){setSf(e.target.value);}},
+          [{v:'All',l:'All Statuses'}].concat(STATUSES.map(function(s){return {v:s,l:s};})).map(function(o){return h('option',{key:o.v,value:o.v},o.l);})
+        )
+      ),
+      h('div',{className:'sel-wrap'},
+        h('select',{value:pf,onChange:function(e){setPf(e.target.value);}},
+          [{v:'All Priority',l:'All Priorities'},{v:'High',l:'High'},{v:'Medium',l:'Medium'},{v:'Low',l:'Low'}].map(function(o){return h('option',{key:o.v,value:o.v},o.l);})
+        )
+      ),
+      h('div',{className:'sel-wrap'},
+        h('select',{value:df,onChange:function(e){setDf(e.target.value);}},
+          [{v:'All Dates',l:'All Dates'},{v:'prev',l:'Prev Week'},{v:'this',l:'This Week'},{v:'next',l:'Next Week'}].map(function(o){return h('option',{key:o.v,value:o.v},o.l);})
+        )
+      ),
+      h('div',{className:'sel-wrap'},
+        h('select',{value:sortBy,onChange:function(e){setSortBy(e.target.value);}},
+          [{v:'createdAt',l:'Latest'},{v:'deadline',l:'Due Date'},{v:'title',l:'Name'}].map(function(o){return h('option',{key:o.v,value:o.v},o.l);})
+        )
+      )
+    ),
+    h('div',{className:'board'},
+      // Unassigned column
+      h('div',{key:'ua',className:'board-col',style:{borderTop:'2px solid #FF3D8B'}},
+        h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,paddingBottom:10,borderBottom:'1px solid '+T.border}},
+          h('span',{className:'mono',style:{fontSize:10,color:'#FF3D8B',textTransform:'uppercase',letterSpacing:'.08em'}},'? Unassigned'),
+          h('span',{style:{marginLeft:'auto',background:'rgba(255,61,139,.15)',color:'#FF3D8B',border:'1px solid rgba(255,61,139,.3)',padding:'1px 7px',fontSize:9,fontFamily:'Space Mono,monospace',fontWeight:700}},
+            filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).length
+          )
+        ),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+          filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).map(function(t){
+            var odd=isOD(t.deadline),cc=t.comments?t.comments.length:0;
+            return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2,borderLeft:'2px solid #FF3D8B'},onClick:function(){onEdit(t);}},
+              h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})),
+              h('div',{style:{fontWeight:600,fontSize:13,color:T.text,marginBottom:4,lineHeight:1.4}},t.title),
+              t.description&&h('p',{style:{fontSize:12,color:T.text2,margin:'0 0 8px',lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}},t.description),
+              h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6,paddingTop:6,borderTop:'1px solid '+T.border2}},
+                h('span',{style:{fontSize:11,color:'#FF3D8B',fontFamily:'Space Mono,monospace'}},'— Unassigned'),
+                h('div',null,
+                  t.deadline&&h('div',{className:'mono',style:{fontSize:10,color:odd?T.red:T.text3,fontWeight:odd?700:400}},(odd?'OD ':'')+fmtD(t.deadline)),
+                  cc>0&&h('span',{className:'mono',style:{fontSize:10,color:'#FF3D8B',fontWeight:700}},'💬 '+cc)
+                )
+              )
+            );
+          }),
+          filtered.filter(function(t){return !t.assignedTo&&t.status==='To Do';}).length===0&&h('div',{className:'mono',style:{textAlign:'center',padding:'20px 0',color:T.text3,fontSize:10,border:'1px dashed '+T.border,marginTop:4}},'// empty')
+        )
+      ),
+      // Status columns
+      STATUSES.map(function(status){
+        var sc={
+          'To Do':{c:T.yellow,icon:'0'},
+          'In Progress':{c:T.accent,icon:'-'},
+          'Done':{c:T.green,icon:'*'}
+        }[status]||{c:T.text3,icon:'?'};
+        var colTasks=filtered.filter(function(t){
+          if(status==='To Do') return t.status===status&&t.assignedTo;
+          return t.status===status;
+        });
+        var displayTasks=status==='Done'?colTasks.slice(0,5):colTasks;
+        return h('div',{key:status,className:'board-col',style:{borderTop:'2px solid '+sc.c}},
+          h('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:12,paddingBottom:10,borderBottom:'1px solid '+T.border}},
+            h('span',{className:'mono',style:{fontSize:10,color:sc.c,textTransform:'uppercase',letterSpacing:'.08em'}},sc.icon+' '+status),
+            h('span',{style:{marginLeft:'auto',background:'rgba(255,255,255,.08)',color:sc.c,border:'1px solid '+sc.c+'44',padding:'1px 7px',fontSize:9,fontFamily:'Space Mono,monospace',fontWeight:700}},colTasks.length)
+          ),
+          h('div',{style:{display:'flex',flexDirection:'column',gap:2}},
+            displayTasks.map(function(t){
+              var m=gmem(t.assignedTo),odd=t.status!=='Done'&&isOD(t.deadline),cc=t.comments?t.comments.length:0;
+              return h('div',{key:t.id,className:'task-card'+(odd?' overdue':''),style:{padding:14,marginBottom:2},onClick:function(){onEdit(t);}},
+                h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:8,gap:4,flexWrap:'wrap'}},h(PBadge,{p:t.priority}),h(TBadge,{t:t.team})),
+                h('div',{style:{fontWeight:600,fontSize:13,color:T.text,marginBottom:4,lineHeight:1.4}},t.title),
+                t.description&&h('p',{style:{fontSize:12,color:T.text2,margin:'0 0 8px',lineHeight:1.5,overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}},t.description),
+                h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6,paddingTop:6,borderTop:'1px solid '+T.border2}},
+                  h('div',{style:{display:'flex',alignItems:'center',gap:6}},
+                    m?h(Av,{m:m,sz:20,pics:pics}):h('span',{style:{fontSize:11,color:T.text3,fontFamily:'Space Mono,monospace'}},'—'),
+                    h('span',{style:{fontSize:11,color:T.text2}},m?m.name:'Unassigned')
+                  ),
+                  h('div',null,
+                    t.deadline&&h('div',{className:'mono',style:{fontSize:10,color:odd?T.red:T.text3,fontWeight:odd?700:400}},(odd?'OD ':'')+fmtD(t.deadline)),
+                    cc>0&&h('span',{className:'mono',style:{fontSize:10,color:sc.c,fontWeight:700}},'💬 '+cc)
+                  )
+                )
+              );
+            }),
+            colTasks.length===0&&h('div',{className:'mono',style:{textAlign:'center',padding:'20px 0',color:T.text3,fontSize:10,border:'1px dashed '+T.border,marginTop:4}},'// empty'),
+            status==='Done'&&filtered.filter(function(t){return t.status==='Done';}).length>5&&h('button',{
+              onClick:function(){setShowDoneAll(true);},
+              style:{width:'100%',marginTop:6,background:'transparent',border:'none',borderTop:'1px solid '+T.border,color:T.text2,padding:'10px',fontFamily:'Space Mono,monospace',fontSize:10,cursor:'pointer',textTransform:'uppercase',letterSpacing:'.06em'}
+            },'+ more →')
+          )
+        );
+      })
+    )
+  );
+}
+
+// ── Team ───────────────────────────────────────────────────────────────────────
+function Team(p){
+  var tasks=p.tasks,pics=p.pics||{},user=p.user||'',profiles=p.profiles||{};
+  var isAdmin=false;for(var ai=0;ai<ADMINS.length;ai++){if(ADMINS[ai]===user.toLowerCase()){isAdmin=true;break;}}
+  var sClock=useState(0),tick=sClock[1];
+  useEffect(function(){
+    var iv=setInterval(function(){tick(function(n){return n+1;});},60000);
+    return function(){clearInterval(iv);};
+  },[]);
   return h('div',{className:'page fade-up'},
     h('div',{style:{marginBottom:24}},
       h('div',{className:'mono',style:{fontSize:10,color:T.green,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:6}},'// Roster'),
