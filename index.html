@@ -1101,6 +1101,7 @@ function Dashboard(p){
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 function Tasks(p){
   var tasks=p.tasks,pics=p.pics||{},onEdit=p.onEdit||function(){},onNew=p.onNew||function(){};
+  var sDone=useState(false),showDoneAll=sDone[0],setShowDoneAll=sDone[1];
   var s1=useState('All'),tf=s1[0],setTf=s1[1];
   var s2=useState('All'),sf=s2[0],setSf=s2[1];
   var s3=useState('All Priority'),pf=s3[0],setPf=s3[1];
